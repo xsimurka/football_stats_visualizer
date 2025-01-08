@@ -1,0 +1,125 @@
+body{
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f0f0f0;
+	background:#767a83;
+	font: 15px "Trebuchet MS";
+	color:#c0c0c0;
+}
+
+/* Grid Container */
+.container {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Two equal-width columns */
+  grid-template-rows: 1fr 1fr; /* Two equal-height rows */
+  gap: 10px; /* Optional spacing between areas */
+  width: 80vw; /* Adjust the overall width */
+  height: 80vh; /* Adjust the overall height */
+  border: 2px solid #333;
+}
+
+/* Individual Grid Areas */
+#map_div {
+  background-color: #a8dadc;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+#table_div {
+  background-color: #f4a261;
+  font-size: 1.2rem;
+  font-weight: bold;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-y: scroll; /* Makes the div scrollable */
+  height: 100%; /* Or set to a specific height like 40vh */
+  width: 100%;
+}
+
+.table-container {
+  overflow-y: scroll;
+  height: 300px;
+}
+
+/* Table Styles */
+#player_table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+#player_table th, #player_table td {
+  padding: 8px;
+  text-align: center;
+  border: 1px solid #ddd;
+}
+
+#player_table th {
+  background-color: #333;
+  color: white;
+}
+
+#player_table td {
+  background-color: #f9f9f9;
+}
+
+
+#reference_player {
+  background-color: #2a9d8f;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+#compared_player {
+  background-color: #e76f51;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+/* Optional: Responsive Design */
+@media (max-width: 768px) {
+  .container {
+    grid-template-columns: 1fr; /* Stack into one column */
+    grid-template-rows: repeat(4, 1fr); /* Four equal rows */
+  }
+}
+
+.headline, .subline{
+  display: block;
+  margin-top: 0.67em;
+  margin-bottom: 0.67em;
+  margin-left: 0;
+  margin-right: 0;
+  fill: white;
+  font-family: 'PT Sans',sans-serif;
+  opacity: 0.5;
+}
+
+.headline{
+  font-weight: bold;
+}
+
+.subline{
+  font-size: 50%;
+  font-weight: thin;
+}
+
+.label{
+  font-family: 'PT Sans',sans-serif;
+  opacity: 1;
+  font-size: 30%;
+}
+

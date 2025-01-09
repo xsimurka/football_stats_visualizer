@@ -100,55 +100,87 @@ d3.csv("players_all_preprocessed.csv", (d) => {
     displayTable();
   });
 
-function displayMap() {
-  const container = document.getElementById("map_div");
-  const width = container.offsetWidth;
-  const height = container.offsetHeight;
-
-  d3.svg("world.svg").then((d) => {
-    d3.select("#map_div").node().append(d.documentElement);
-
-    d3.select("#map_div").select("svg")
-      .attr("id", "map")
-      .attr("width", width)
-      .attr("height", height)
-      .attr("x", 0)
-      .attr("y", 0);
-
-    let map = d3.select("#map");
-
-    map.selectAll("path")
-      .style("fill", "lightgray")
-      .style("stroke", "gray")
-      .style("stroke-width", 3)
-      .on("click", function () {
-        const countryId = this.id;
-        const countryName = this.getAttribute("title");
-        mapClick(countryId, countryName);
+  function displayMap() {
+    const map = L.map("map_div", {
+      center: [20, 0], // Center on Africa for a global view
+      zoom: 2, // Default zoom level for the whole world
+      scrollWheelZoom: true,
+    });
+  
+    fetch("https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson")
+      .then((response) => response.json())
+      .then((data) => {
+        const geoLayer = L.geoJSON(data, {
+          style: {
+            color: "#333", // Border color
+            weight: 1, // Border thickness
+            fillColor: "lightgray", // Fill color for countries
+            fillOpacity: 1, // Transparency
+          },
+          onEachFeature: function (feature, layer) {
+            const countryName = feature.properties.ADMIN;
+            const countryId = feature.properties.ISO_A3; // Use ISO-3 country code
+  
+            // Make the layer interactive for clicking
+            layer.options.interactive = true;
+  
+            // Add click event
+            layer.on("click", function () {
+              mapClick(countryId, countryName);
+            });
+  
+            // Calculate the centroid using turf.js
+            const centroid = turf.centroid(feature).geometry.coordinates.reverse();
+  
+            // Add a label with the country's name (ensure all words are in one line)
+            const initialZoom = map.getZoom();
+            const initialFontSize = Math.max(8, Math.min(initialZoom * 2, 24)); // Scale font size
+  
+            const label = L.divIcon({
+              className: "country-label", // Custom class for styling
+              html: `<div style="white-space: nowrap; font-size: ${initialFontSize}px;">${countryName}</div>`, // Ensure single-line label
+            });
+  
+            const marker = L.marker(centroid, { icon: label, interactive: false });
+            marker.addTo(map);
+  
+            // Store the label marker for dynamic control
+            countryLabels.push({ marker, layer });
+          },
+        });
+  
+        geoLayer.addTo(map); // Add the GeoJSON layer to the map
       });
-
-    let zoom = d3.zoom()
-      .scaleExtent([0.5, 8])
-      .on("zoom", function (event) {
-        map
-          .attr("transform", event.transform);
+  
+    // Array to store label markers for dynamic control
+    const countryLabels = [];
+  
+    // Adjust label visibility and size based on zoom level
+    map.on("zoom", function () {
+      const zoom = map.getZoom();
+  
+      countryLabels.forEach(({ marker, layer }) => {
+        const countryName = layer.feature.properties.ADMIN;
+        const fontSize = Math.max(8, Math.min(zoom * 2, 24)); // Scale font size between 8 and 24px based on zoom
+        const opacity = zoom > 2 ? 1 : 0; // Hide labels for zoom <= 2
+  
+        marker.setIcon(
+          L.divIcon({
+            className: "country-label",
+            html: `<div style="white-space: nowrap; font-size: ${fontSize}px;">${countryName}</div>`,
+          })
+        );
+        marker.setOpacity(opacity);
       });
-
-    map.call(zoom);
-  });
-}
-
-// Function to handle the click event for the country
-function mapClick(countryId, countryName) {
-  console.log(`Country clicked: ${countryName} (ID: ${countryId})`);
-
-  // Hide the map and show the table
-  //document.getElementById("map_div").style.display = "none";
-  //document.getElementById("table_div").style.display = "block";
-
-  // Show leagues or any relevant data for the clicked country
-  showLeagues(countryName);
-}
+    });
+  
+    // Handle clicks
+    function mapClick(countryId, countryName) {
+      console.log(`Clicked on: ${countryName} (${countryId})`);
+      alert(`You clicked on ${countryName} (${countryId})`);
+    }
+  }
+  
 
 function showLeagues(countryName) {
   console.log(`Showing leagues for: ${countryName}`);
@@ -162,7 +194,7 @@ function showTeams(leagueName) {
 function displayTable() {
   const table = new Tabulator("#table_div", {
     data: data, // Data for the table
-    layout: "fitColumns", // Automatically adjust column width to fit content
+    layout: "fitData", // Automatically adjust column width to fit content
     columns: [
       { title: "Name", field: "name", headerSort: true }, // Sortable column
       { title: "Value", field: "value_eur", headerSort: true }, // Sortable column
@@ -182,3 +214,4 @@ function displayTable() {
     console.log(`Mouse over row: ${row.getData().name}`); // Example functionality
   });
 }
+

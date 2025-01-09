@@ -6,15 +6,20 @@
     <title>Football Players Stats Visualizer</title>
     <link href="style.css" rel="stylesheet">
     <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script type="module" src="app.js"></script>   
+    <link href="https://unpkg.com/tabulator-tables@5.4.0/dist/css/tabulator.min.css" rel="stylesheet"> 
+    <script src="https://unpkg.com/tabulator-tables@5.4.0/dist/js/tabulator.min.js"></script>
+    <link href="https://unpkg.com/leaflet/dist/leaflet.css" rel="stylesheet">
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script type="module" src="app.js"></script>
   </head>
 
   <body>
     <div class="container">
-      <div id="map_div">Map Area</div>
-      <div id="table_div" class="table-container"></div>
-      <div id="reference_player">Reference Player</div>
-      <div id="compared_player">Compared Player</div>
+      <div id="map_div"></div>
+      <div id="reference_player" class="tabulator-container"> </div>
+      <div id="table_div" class="tabulator-container"></div>
+      <div id="compared_player" class="tabulator-container"> </div>
     </div>
   </body>
-  </html>
+</html>
+

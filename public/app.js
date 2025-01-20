@@ -1,4 +1,69 @@
 var data;
+var leagueCountries;
+var nationalities;
+var currentSet;
+let geoLayer;
+
+let selectedCountry = "Country X";
+let countryHasMultipleLeagues = false;
+
+function getRandomColor() {
+  const colors = [
+    "#ffb3ba", // Pastel Pink
+    "#ff7f50", // Coral
+    "#ffcc00", // Bright Yellow
+    "#00ff7f", // Spring Green
+    "#00bfff", // Deep Sky Blue
+    "#8a2be2", // Blue Violet
+    "#ff69b4", // Hot Pink
+    "#98fb98", // Pale Green
+    "#ff6347", // Tomato
+    "#b0e0e6", // Powder Blue
+    "#ffa07a", // Light Salmon
+    "#5f9ea0", // Cadet Blue
+    "#ffff00", // Yellow
+    "#f08080", // Light Coral
+    "#ffd700", // Gold
+  ];
+  return colors[Math.floor(Math.random() * colors.length)];
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  const backButton = document.getElementById("back_button");
+  const backButtonTeams = document.getElementById("back_button_teams");
+
+  backButton.addEventListener("click", backToMap);
+  backButtonTeams.addEventListener("click", function() {
+    if (hasMultipleLeagues) {
+      backToLeagues();
+    } else {
+      backToMap();
+    }
+  });
+
+  function backToMap() {
+    document.getElementById("league_grid").style.display = "none";
+    document.getElementById("team_grid").style.display = "none";
+    document.getElementById("map_div").style.display = "flex"; 
+  }
+
+  function backToLeagues() {
+    document.getElementById("team_grid").style.display = "none";
+    document.getElementById("league_grid").style.display = "flex";
+  }
+});
+
+document.querySelectorAll('input[name="mode"]').forEach((radio) => {
+  radio.addEventListener("change", (event) => {
+    currentSet = event.target.value === "league" ? leagueCountries : nationalities;
+    setCountryStylesAndInteractivity(geoLayer);
+  });
+});
+
+function getUniqueLeaguesByCountry(leagueCountry) {
+  const filteredData = data.filter(row => row.league_country === leagueCountry);
+  return new Set(filteredData.map(row => row.league_name));
+}
 
 d3.csv("players_all_preprocessed.csv", (d) => {
   return {
@@ -17,6 +82,7 @@ d3.csv("players_all_preprocessed.csv", (d) => {
     club_name: d.club_name,
     league_id: +d.league_id,
     league_name: d.league_name,
+    league_country: d.league_country,
     league_level: +d.league_level,
     nationality_id: +d.nationality_id,
     nationality_name: d.nationality_name,
@@ -96,122 +162,194 @@ d3.csv("players_all_preprocessed.csv", (d) => {
 })
   .then(function (csvData) {
     data = csvData;
+    leagueCountries = new Set(data.map(row => row["league_country"]));
+    nationalities = new Set(data.map(row => row["nationality_name"]));
+    currentSet = leagueCountries;
     displayMap();
     displayTable();
   });
 
-  function displayMap() {
-    const map = L.map("map_div", {
-      center: [20, 0], // Center on Africa for a global view
-      zoom: 2, // Default zoom level for the whole world
-      scrollWheelZoom: true,
-    });
-  
-    fetch("https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson")
-      .then((response) => response.json())
-      .then((data) => {
-        const geoLayer = L.geoJSON(data, {
-          style: {
-            color: "#333", // Border color
-            weight: 1, // Border thickness
-            fillColor: "lightgray", // Fill color for countries
-            fillOpacity: 1, // Transparency
-          },
-          onEachFeature: function (feature, layer) {
-            const countryName = feature.properties.ADMIN;
-            const countryId = feature.properties.ISO_A3; // Use ISO-3 country code
-  
-            // Make the layer interactive for clicking
-            layer.options.interactive = true;
-  
-            // Add click event
-            layer.on("click", function () {
-              mapClick(countryId, countryName);
-            });
-  
-            // Calculate the centroid using turf.js
-            const centroid = turf.centroid(feature).geometry.coordinates.reverse();
-  
-            // Add a label with the country's name (ensure all words are in one line)
-            const initialZoom = map.getZoom();
-            const initialFontSize = Math.max(8, Math.min(initialZoom * 2, 24)); // Scale font size
-  
-            const label = L.divIcon({
-              className: "country-label", // Custom class for styling
-              html: `<div style="white-space: nowrap; font-size: ${initialFontSize}px;">${countryName}</div>`, // Ensure single-line label
-            });
-  
-            const marker = L.marker(centroid, { icon: label, interactive: false });
-            marker.addTo(map);
-  
-            // Store the label marker for dynamic control
-            countryLabels.push({ marker, layer });
-          },
-        });
-  
-        geoLayer.addTo(map); // Add the GeoJSON layer to the map
+function setCountryStylesAndInteractivity(geoLayer) {
+  geoLayer.eachLayer(function (layer) {
+    const countryName = layer.feature.properties.ADMIN;
+
+    if (currentSet.has(countryName)) {
+      layer.setStyle({
+        fillColor: getRandomColor(),
+        fillOpacity: 0.7,
+        color: "#333",
+        weight: 2,
       });
-  
-    // Array to store label markers for dynamic control
-    const countryLabels = [];
-  
-    // Adjust label visibility and size based on zoom level
-    map.on("zoom", function () {
-      const zoom = map.getZoom();
-  
-      countryLabels.forEach(({ marker, layer }) => {
-        const countryName = layer.feature.properties.ADMIN;
-        const fontSize = Math.max(8, Math.min(zoom * 2, 24)); // Scale font size between 8 and 24px based on zoom
-        const opacity = zoom > 2 ? 1 : 0; // Hide labels for zoom <= 2
-  
-        marker.setIcon(
-          L.divIcon({
-            className: "country-label",
-            html: `<div style="white-space: nowrap; font-size: ${fontSize}px;">${countryName}</div>`,
-          })
-        );
-        marker.setOpacity(opacity);
+      layer.options.interactive = true;
+    } else {
+      layer.setStyle({
+        fillColor: "lightgray",
+        fillOpacity: 1,
+        color: "#333",
+        weight: 1,
       });
-    });
-  
-    // Handle clicks
-    function mapClick(countryId, countryName) {
-      console.log(`Clicked on: ${countryName} (${countryId})`);
-      alert(`You clicked on ${countryName} (${countryId})`);
+      layer.options.interactive = false;
     }
+  });
+}
+
+
+function displayMap() {
+  const map = L.map("map_div", {
+    center: [20, 0],
+    zoom: 2,
+    scrollWheelZoom: true,
+  });
+
+  fetch("https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson")
+    .then((response) => response.json())
+    .then((data) => {
+      geoLayer = L.geoJSON(data, {
+        onEachFeature: function (feature, layer) {
+          const countryName = feature.properties.ADMIN;
+
+          layer.on("click", function () {
+            if (layer.options.interactive) {
+              mapClick(countryName);
+            }
+          });
+
+          const centroid = turf.centroid(feature).geometry.coordinates.reverse();
+          const initialZoom = map.getZoom();
+          const initialFontSize = Math.max(8, Math.min(initialZoom * 2, 24));
+          const label = L.divIcon({
+            className: "country-label",
+            html: `<div style="white-space: nowrap; font-size: ${initialFontSize}px;">${countryName}</div>`
+          });
+
+          const marker = L.marker(centroid, { icon: label, interactive: false });
+          marker.addTo(map)
+          countryLabels.push({ marker, layer });
+        },
+      });
+
+      geoLayer.addTo(map);
+
+      setCountryStylesAndInteractivity(geoLayer);
+    });
+
+  const countryLabels = [];
+
+  map.on("zoom", function () {
+    const zoom = map.getZoom();
+
+    countryLabels.forEach(({ marker, layer }) => {
+      const countryName = layer.feature.properties.ADMIN;
+      const fontSize = Math.max(8, Math.min(zoom * 2, 24));
+      const opacity = zoom > 2 ? 1 : 0;
+
+      marker.setIcon(
+        L.divIcon({
+          className: "country-label",
+          html: `<div style="white-space: nowrap; font-size: ${fontSize}px;">${countryName}</div>`,
+        })
+      );
+      marker.setOpacity(opacity);
+    });
+  });
+}
+
+function mapClick(countryName) {
+  console.log(`Clicked on: ${countryName}`);
+  let leagues = getUniqueLeaguesByCountry(countryName);
+  if (leagues.size > 1) {
+    showLeagues(countryName);
   }
-  
+  showTeams(countryName);
+}
 
 function showLeagues(countryName) {
   console.log(`Showing leagues for: ${countryName}`);
+
+  document.getElementById('map_div').style.display = 'none';
+  document.getElementById('league_grid').style.display = 'block';
+  document.getElementById('back_button').style.display = 'block';
+
+  const leagueContainer = document.getElementById('league_grid');
+  leagueContainer.innerHTML = ''; 
+  const leagues = getUniqueLeaguesByCountry(countryName);
+  leagues.forEach(league => {
+    const leagueBadge = document.createElement('div');
+    leagueBadge.className = 'badge';
+    leagueBadge.textContent = league;
+    leagueBadge.onclick = function () {
+      showTeams(league); 
+    };
+    leagueContainer.appendChild(leagueBadge);
+  });
 }
 
 function showTeams(leagueName) {
-  console.log(`Showing reams for: ${leagueName}`);
+  console.log(`Showing teams for: ${leagueName}`);
+  
+
+  document.getElementById('league_grid').style.display = 'none';
+  document.getElementById('team_grid').style.display = 'block';
+  document.getElementById('back_button_teams').style.display = 'block'; 
+
+  const teamContainer = document.getElementById('team_grid');
+  teamContainer.innerHTML = ''; 
+  const teams = getTeamsByLeague(leagueName);
+  teams.forEach(team => {
+    const teamBadge = document.createElement('div');
+    teamBadge.className = 'badge';
+    teamBadge.textContent = team;
+    teamContainer.appendChild(teamBadge);
+  });
 }
 
 
 function displayTable() {
   const table = new Tabulator("#table_div", {
-    data: data, // Data for the table
-    layout: "fitData", // Automatically adjust column width to fit content
+    data: data,
+    layout: "fitDataFill",
     columns: [
-      { title: "Name", field: "name", headerSort: true }, // Sortable column
-      { title: "Value", field: "value_eur", headerSort: true }, // Sortable column
-      { title: "Wage", field: "wage_eur", headerSort: true }, // Sortable column
+      {
+        title: "Name",
+        field: "name",
+        headerSort: true,
+        resizable: false,
+      },
+      {
+        title: "Value",
+        field: "value_eur",
+        headerSort: true,
+        resizable: false,
+      },
+      {
+        title: "Wage",
+        field: "wage_eur",
+        headerSort: true,
+        resizable: false,
+      },
     ],
-    resizableColumns: false, // Disable column resizing
-    selectable: false, // No row selection feature
+    selectable: false,
   });
 
-  // Row Click Event
   table.on("rowClick", function (e, row) {
-    console.log(`Row clicked: ${row.getData().name}`); // Example functionality
+    console.log(`Row clicked: ${row.getData().name}`); 
   });
 
-  // Row Mouse Over Event
   table.on("rowMouseOver", function (e, row) {
-    console.log(`Mouse over row: ${row.getData().name}`); // Example functionality
+    console.log(`Mouse over row: ${row.getData().name}`);
   });
 }
 
+function backToMap() {
+  document.getElementById('map_div').style.display = 'block';
+  document.getElementById('league_grid').style.display = 'none';
+  document.getElementById('team_grid').style.display = 'none';
+  document.getElementById('back_button').style.display = 'none';
+}
+
+function backToLeagues() {
+  document.getElementById('team_grid').style.display = 'none';
+  document.getElementById('league_grid').style.display = 'block';
+  document.getElementById('back_button_teams').style.display = 'none';
+  document.getElementById('back_button').style.display = 'block';
+}

@@ -7,8 +7,8 @@
     <link href="style.css" rel="stylesheet">
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
-    <link href="https://unpkg.com/tabulator-tables@5.4.0/dist/css/tabulator.min.css" rel="stylesheet"> 
-    <script src="https://unpkg.com/tabulator-tables@5.4.0/dist/js/tabulator.min.js"></script>
+    <link href="https://unpkg.com/tabulator-tables@6.3.0/dist/css/tabulator.min.css" rel="stylesheet"> 
+    <script src="https://unpkg.com/tabulator-tables@6.3.0/dist/js/tabulator.min.js"></script>
     <link href="https://unpkg.com/leaflet/dist/leaflet.css" rel="stylesheet">
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script type="module" src="app.js"></script>
@@ -16,11 +16,38 @@
 
   <body>
     <div class="container">
-      <div id="map_div"></div>
-      <div id="reference_player"> </div>
+      <!-- Cell 1: Map + Leagues + Clubs -->
+      <div id="map_div">
+        <div id="radio_buttons">
+          <label>
+            <input type="radio" name="mode" value="league" checked> League
+          </label>
+          <label>
+            <input type="radio" name="mode" value="nationality"> Nationality
+          </label>
+        </div>
+      </div>
+
+      <!-- Cell 2: Table -->
       <div id="table_div" class="tabulator-container"></div>
+
+      <!-- Cell 3: Reference Player -->
+      <div id="reference_player"> </div>
+
+      <!-- Cell 4: Compared Player -->
       <div id="compared_player"> </div>
+
+      <!-- Cell 1: Leagues Grid (hidden by default) -->
+      <div id="league_grid" class="badge-grid">
+        <button id="back_button" onclick="backToMap()">Back</button>
+        <!-- Leagues badges will go here -->
+      </div>
+
+      <!-- Cell 1: Teams Grid (hidden by default) -->
+      <div id="team_grid" class="badge-grid">
+        <button id="back_button_teams" onclick="backToLeagues()">Back</button>
+        <!-- Teams badges will go here -->
+      </div>
     </div>
   </body>
 </html>
-

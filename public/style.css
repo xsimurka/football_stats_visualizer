@@ -1,117 +1,157 @@
+/* General styles */
 body {
   margin: 0;
   padding: 0;
   height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background-color: #f0f0f0;
-  background: #767a83;
-  font: 15px "Trebuchet MS";
+  background-color: #767a83;
+  font-family: "Trebuchet MS", sans-serif;
   color: #c0c0c0;
+  position: relative;
 }
 
-/* Container setup */
 .container {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  grid-template-rows: 1fr 1fr;
-  gap: 5px;
-  width: 99vw;
-  height: 99vh;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
   border: 2px solid #333;
 }
 
-/* Cell 1: Map + Leagues + Clubs (overlapping) */
+/* Map div */
 #map_div {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 50%;
   background-color: #a8dadc;
   display: flex;
   justify-content: center;
   align-items: center;
   font-size: 1.2rem;
   font-weight: bold;
-  grid-column: 1 / 2;
-  grid-row: 1 / 2;
-  position: relative;
-  width: 100%;
-  height: 100%;
+  visibility: visible; /* Initially visible */
+  opacity: 1; /* Initially visible */
+  transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
-#league_grid, #team_grid {
-  background-color: #e9ecef;
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  font-size: 1.2rem;
-  font-weight: bold;
+/* League and team grids */
+#league_div, #team_div {
   position: absolute;
   top: 0;
   left: 0;
+  width: 50%;
+  height: 50%;
+  background-color: rgb(255, 255, 255);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+  z-index: 2;
+  visibility: hidden; /* Hidden by default */
+  opacity: 0; /* Hidden by default */
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+/* Make league and team divs visible when toggled */
+#league_div.show, #team_div.show {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Back button */
+.back-button {
+  position: absolute;
+  top: 10px;  /* Add margin from the top */
+  right: 10px;  /* Add margin from the right */
+  z-index: 10; /* Ensure it's above the badge grid */
+  background-color: #ff6347;
+  color: #f7f7f7;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 5px;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.3s ease;
+}
+
+.back-button:hover {
+  background-color: #e5533c;
+}
+
+.back-button:active {
+  background-color: #cc4933;
+}
+
+/* Badge grid */
+.badge-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  top: 55px;
+  gap: 10px;
   width: 100%;
-  height: 100%;
-  z-index: 2; /* Ensure it's above map */
+  height: calc(100% - 55px); /* Take up the full height of the parent */
+  padding: 5px;
+  background: #f7f7f7;
+  border-radius: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+  overflow-y: auto; /* Make the grid scrollable */
+
+  position: relative; /* Keep the grid flowing under the back button */
 }
 
-#league_grid {
-  display: none; /* Initially hidden */
-}
 
-#team_grid {
-  display: none; /* Initially hidden */
-}
-
-/* Cell 2: Table */
+/* Table grid */
 #table_div {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 50%;
+  height: 50%;
   background-color: #83817f;
   font-size: 1.2rem;
   font-weight: bold;
-  grid-column: 1 / 2;
-  grid-row: 2 / 3;
+}
+
+.tabulator-container {
   width: 100%;
   height: 100%;
 }
 
-.tabulator-container {
-  width: 100%; 
-  height: 100%;
-}
-
-/* Cell 3: Reference Player */
+/* Reference and compared players */
 #reference_player {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 50%;
+  height: 50%;
   background-color: #2a9d8f;
   display: flex;
   justify-content: center;
   align-items: center;
   font-size: 1.2rem;
   font-weight: bold;
-  grid-column: 2 / 3;
-  grid-row: 1 / 2;
-  width: 100%;
-  height: 100%;
 }
 
-/* Cell 4: Compared Player */
 #compared_player {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 50%;
+  height: 50%;
   background-color: #e76f51;
   display: flex;
   justify-content: center;
   align-items: center;
   font-size: 1.2rem;
   font-weight: bold;
-  grid-column: 2 / 3;
-  grid-row: 2 / 3;
-  width: 100%;
-  height: 100%;
 }
 
-.country-label {
-  color: black;
-  font-weight: bold;
-  text-shadow: 1px 1px 2px white, -1px -1px 2px white;
-  pointer-events: none;
-}
-
+/* Radio buttons */
 #radio_buttons {
   position: absolute;
   top: 10px;

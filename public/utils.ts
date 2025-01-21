@@ -10,12 +10,3 @@ function getPlayersPhotoURL(player_id: number, fifa_version: number, size: numbe
     return `https://cdn.sofifa.net/players/${idString.slice(0, 3)}/${idString.slice(3)}/${fifa_version}_${size}.png`;
 }
 
-/**
- * Generates a club's logo URL.
- * @param club_id The unique identifier for the club
- * @param size - Size of resulting image in pixels.
- * @returns URL in string.
- */
-function getClubLogoURL(club_id: number, size: number): string {
-    return `https://cdn.sofifa.net/teams/${club_id}/${size}.png`
-}

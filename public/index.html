@@ -13,10 +13,8 @@
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script type="module" src="app.js"></script>
   </head>
-
   <body>
     <div class="container">
-      <!-- Cell 1: Map + Leagues + Clubs -->
       <div id="map_div">
         <div id="radio_buttons">
           <label>
@@ -27,26 +25,20 @@
           </label>
         </div>
       </div>
-
-      <!-- Cell 2: Table -->
       <div id="table_div" class="tabulator-container"></div>
+      
+      <div id="reference_player"></div>
 
-      <!-- Cell 3: Reference Player -->
-      <div id="reference_player"> </div>
-
-      <!-- Cell 4: Compared Player -->
-      <div id="compared_player"> </div>
-
-      <!-- Cell 1: Leagues Grid (hidden by default) -->
-      <div id="league_grid" class="badge-grid">
-        <button id="back_button" onclick="backToMap()">Back</button>
-        <!-- Leagues badges will go here -->
+      <div id="compared_player"></div>
+      
+      <div id="league_div" class="badge-div">
+        <button id="back_button_leagues" class="back-button">Back</button>
+        <div id="league_grid" class="badge-grid"></div>
       </div>
-
-      <!-- Cell 1: Teams Grid (hidden by default) -->
-      <div id="team_grid" class="badge-grid">
-        <button id="back_button_teams" onclick="backToLeagues()">Back</button>
-        <!-- Teams badges will go here -->
+      
+      <div id="team_div" class="badge-div">
+        <button id="back_button_teams" class="back-button">Back</button>
+        <div id="team_grid" class="badge-grid"></div>
       </div>
     </div>
   </body>

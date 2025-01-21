@@ -2,10 +2,14 @@ var data;
 var leagueCountries;
 var nationalities;
 var currentSet;
-let geoLayer;
+var geoLayer;
+var table;
+const fifaVersion = 24;
 
-let selectedCountry = "Country X";
-let countryHasMultipleLeagues = false;
+var selectedCountry;
+var countryHasMultipleLeagues;
+var selectedLeague;
+var selectedTeam;
 
 function getRandomColor() {
   const colors = [
@@ -28,42 +32,44 @@ function getRandomColor() {
   return colors[Math.floor(Math.random() * colors.length)];
 }
 
-document.addEventListener("DOMContentLoaded", function() {
-  const backButton = document.getElementById("back_button");
+document.addEventListener("DOMContentLoaded", function () {
+  const backButtonLeagues = document.getElementById("back_button_leagues");
   const backButtonTeams = document.getElementById("back_button_teams");
 
-  backButton.addEventListener("click", backToMap);
-  backButtonTeams.addEventListener("click", function() {
-    if (hasMultipleLeagues) {
+  backButtonLeagues.addEventListener("click", backToMap);
+  backButtonTeams.addEventListener("click", function () {
+    if (countryHasMultipleLeagues) {
       backToLeagues();
     } else {
       backToMap();
     }
   });
-
-  function backToMap() {
-    document.getElementById("league_grid").style.display = "none";
-    document.getElementById("team_grid").style.display = "none";
-    document.getElementById("map_div").style.display = "flex"; 
-  }
-
-  function backToLeagues() {
-    document.getElementById("team_grid").style.display = "none";
-    document.getElementById("league_grid").style.display = "flex";
-  }
 });
+
+function backToMap() {
+  document.getElementById("map_div").style.display = "block";
+  document.getElementById("league_div").classList.remove("show");
+  document.getElementById("team_div").classList.remove("show");
+  document.getElementById("back_button_leagues").style.display = "none";
+  table.setData(data);
+}
+
+function backToLeagues() {
+  document.getElementById("team_div").classList.remove("show");
+  document.getElementById("league_div").classList.add("show");
+  document.getElementById("back_button_teams").style.display = "none";
+  document.getElementById("back_button_leagues").style.display = "block";
+  table.setData(selectByLeagueCountry(selectedCountry));
+}
+
 
 document.querySelectorAll('input[name="mode"]').forEach((radio) => {
   radio.addEventListener("change", (event) => {
     currentSet = event.target.value === "league" ? leagueCountries : nationalities;
     setCountryStylesAndInteractivity(geoLayer);
+    table.setData(data);
   });
 });
-
-function getUniqueLeaguesByCountry(leagueCountry) {
-  const filteredData = data.filter(row => row.league_country === leagueCountry);
-  return new Set(filteredData.map(row => row.league_name));
-}
 
 d3.csv("players_all_preprocessed.csv", (d) => {
   return {
@@ -210,6 +216,8 @@ function displayMap() {
 
           layer.on("click", function () {
             if (layer.options.interactive) {
+              selectedCountry = countryName;
+              countryHasMultipleLeagues = getUniqueLeaguesByCountry(countryName).size > 1;
               mapClick(countryName);
             }
           });
@@ -256,100 +264,190 @@ function displayMap() {
 
 function mapClick(countryName) {
   console.log(`Clicked on: ${countryName}`);
-  let leagues = getUniqueLeaguesByCountry(countryName);
-  if (leagues.size > 1) {
-    showLeagues(countryName);
+
+  const radioValue = document.querySelector('input[name="mode"]:checked').value;
+  if (radioValue === "nationality") {
+    const filteredData = selectByNation(countryName);
+    table.setData(filteredData);
+  } else { // leagues
+    let leagues = getUniqueLeaguesByCountry(countryName);
+    if (leagues.size > 1) {
+      showLeagues(countryName, leagues);
+    } else {
+      showTeams(countryName, leagues.values().next().value); // has exactly one
+    }
   }
-  showTeams(countryName);
 }
 
-function showLeagues(countryName) {
-  console.log(`Showing leagues for: ${countryName}`);
+  function showLeagues(countryName, leagues) {
+    console.log(`Showing leagues for: ${countryName}`);
 
-  document.getElementById('map_div').style.display = 'none';
-  document.getElementById('league_grid').style.display = 'block';
-  document.getElementById('back_button').style.display = 'block';
+    document.getElementById('map_div').style.display = 'none';
+    document.getElementById('league_div').classList.add("show");
+    document.getElementById('back_button_leagues').style.display = 'block';
 
-  const leagueContainer = document.getElementById('league_grid');
-  leagueContainer.innerHTML = ''; 
-  const leagues = getUniqueLeaguesByCountry(countryName);
-  leagues.forEach(league => {
-    const leagueBadge = document.createElement('div');
-    leagueBadge.className = 'badge';
-    leagueBadge.textContent = league;
-    leagueBadge.onclick = function () {
-      showTeams(league); 
-    };
-    leagueContainer.appendChild(leagueBadge);
-  });
-}
+    const leagueContainer = document.getElementById('league_grid');
+    leagueContainer.innerHTML = '';
 
-function showTeams(leagueName) {
-  console.log(`Showing teams for: ${leagueName}`);
+    leagues.forEach(league => {
+      const leagueWrapper = document.createElement('div');
+      leagueWrapper.className = 'league-wrapper';
+      const leagueBadge = document.createElement('div');
+      leagueBadge.className = 'badge';
+
+      let badge = getLeagueBadgePath(league)
+      leagueBadge.style.backgroundImage = `url(${badge})`;
+      leagueBadge.style.backgroundSize = 'contain';
+      leagueBadge.style.backgroundRepeat = 'no-repeat';
+      leagueBadge.style.width = '100px';
+      leagueBadge.style.height = '100px';
+      leagueBadge.style.margin = '0 auto';
+
+      leagueBadge.onclick = function () {
+        selectedLeague = league;
+        showTeams(countryName, league);
+      };
+
+      const leagueName = document.createElement('div');
+      leagueName.className = 'league-name';
+      leagueName.textContent = league;
+      leagueName.style.textAlign = 'center';
+      leagueName.style.marginTop = '10px';
+      leagueWrapper.appendChild(leagueBadge);
+      leagueWrapper.appendChild(leagueName);
+      leagueContainer.appendChild(leagueWrapper);
+
+      const filteredData = selectByLeagueCountry(countryName)
+      table.setData(filteredData);
+    });
+  }
+
+  function showTeams(countryName, leagueName) {
+    console.log(`Showing teams for: ${leagueName}`);
+
+    document.getElementById('league_div').classList.remove("show");
+    document.getElementById('team_div').classList.add("show");
+    document.getElementById('back_button_teams').style.display = 'block';
+
+    const teamContainer = document.getElementById('team_grid');
+    teamContainer.innerHTML = '';
+
+    const teams = getLeagueClubIds(countryName, leagueName, 24);
+
+    teams.forEach(team => {
+      const clubName = getClubNameById(team);
+      const teamBadge = document.createElement('div');
+      teamBadge.className = 'badge';
+
+      let logo = getClubLogoURL(team, 120)
+      teamBadge.style.backgroundImage = `url(${logo})`;
+      teamBadge.style.backgroundSize = 'contain';
+      teamBadge.style.backgroundRepeat = 'no-repeat';
+      teamBadge.style.width = '100px';
+      teamBadge.style.height = '100px';
+      teamBadge.style.margin = '0 auto';
+
+      const teamName = document.createElement('div');
+      teamName.textContent = clubName;
+      teamName.style.textAlign = 'center';
+      teamName.style.marginTop = '5px';
+      teamBadge.appendChild(teamName);
+
+      teamBadge.onclick = function () {
+        selectedTeam = clubName;
+        console.log(`Clicked on team: ${clubName}`);
+        const filteredData = selectByClub(countryName, leagueName, clubName);
+        table.setData(filteredData);
+      };
+
+      teamContainer.appendChild(teamBadge);
+
+      const filteredData = selectByLeague(countryName, leagueName);
+      table.setData(filteredData);
+    });
+  }
+
+
+  function displayTable() {
+    table = new Tabulator("#table_div", {
+      data: data,
+      layout: "fitDataFill",
+      columns: [
+        {
+          title: "Name",
+          field: "name",
+          headerSort: true,
+          resizable: false,
+        },
+        {
+          title: "Value",
+          field: "value_eur",
+          headerSort: true,
+          resizable: false,
+        },
+        {
+          title: "Wage",
+          field: "wage_eur",
+          headerSort: true,
+          resizable: false,
+        },
+      ],
+      selectable: false,
+    });
+
+    table.on("rowClick", function (e, row) {
+      console.log(`Row clicked: ${row.getData().name}`);
+    });
+
+    table.on("rowMouseOver", function (e, row) {
+      console.log(`Mouse over row: ${row.getData().name}`);
+    });
+  }
+
+  function getLeagueBadgePath(league) {
+    return "./premier-league.png"
+  }
+
+  function getClubLogoURL(club_id, size) {
+    return `https://cdn.sofifa.net/teams/${club_id}/${size}.png`
+  }
+
+  function getLeagueClubIds(country, league, year) {
+    const filteredClubs = data.filter(
+      (row) => row.league_name === league && row.fifa_version === year && row.league_country === country
+    );
+    const uniqueClubIds = new Set(filteredClubs.map((row) => row.club_team_id));
+    return uniqueClubIds;
+  }
+
+  function selectByNation(nationality) {
+    return data.filter((row) =>
+      row.fifa_version === fifaVersion && row.nationality_name === nationality);
+  }
+
+  function selectByLeagueCountry(league_country) {
+    return data.filter((row) =>
+      row.fifa_version === fifaVersion && row.league_country === league_country);
+  }
+
+  function selectByLeague(league_country, league_name) {
+    return data.filter((row) =>
+      row.fifa_version === fifaVersion && row.league_name === league_name && row.league_country === league_country);
+  }
+
+  function selectByClub(league_country, league_name, club_name) {
+    return data.filter((row) =>
+      row.fifa_version === fifaVersion && row.club_name === club_name && row.league_name === league_name && row.league_country === league_country);
+  }
+
+  function getUniqueLeaguesByCountry(league_country) {
+    const filteredData = data.filter((row) =>
+      row.league_country === league_country && row.fifa_version === 24);
+    return new Set(filteredData.map(row => row.league_name));
+  }
+
+  function getClubNameById(club_team_id) {
+    const club = data.find((row) => row.club_team_id === club_team_id);
+    return club ? club.club_name : null; // Return the club name or null if not found
+  }
   
-
-  document.getElementById('league_grid').style.display = 'none';
-  document.getElementById('team_grid').style.display = 'block';
-  document.getElementById('back_button_teams').style.display = 'block'; 
-
-  const teamContainer = document.getElementById('team_grid');
-  teamContainer.innerHTML = ''; 
-  const teams = getTeamsByLeague(leagueName);
-  teams.forEach(team => {
-    const teamBadge = document.createElement('div');
-    teamBadge.className = 'badge';
-    teamBadge.textContent = team;
-    teamContainer.appendChild(teamBadge);
-  });
-}
-
-
-function displayTable() {
-  const table = new Tabulator("#table_div", {
-    data: data,
-    layout: "fitDataFill",
-    columns: [
-      {
-        title: "Name",
-        field: "name",
-        headerSort: true,
-        resizable: false,
-      },
-      {
-        title: "Value",
-        field: "value_eur",
-        headerSort: true,
-        resizable: false,
-      },
-      {
-        title: "Wage",
-        field: "wage_eur",
-        headerSort: true,
-        resizable: false,
-      },
-    ],
-    selectable: false,
-  });
-
-  table.on("rowClick", function (e, row) {
-    console.log(`Row clicked: ${row.getData().name}`); 
-  });
-
-  table.on("rowMouseOver", function (e, row) {
-    console.log(`Mouse over row: ${row.getData().name}`);
-  });
-}
-
-function backToMap() {
-  document.getElementById('map_div').style.display = 'block';
-  document.getElementById('league_grid').style.display = 'none';
-  document.getElementById('team_grid').style.display = 'none';
-  document.getElementById('back_button').style.display = 'none';
-}
-
-function backToLeagues() {
-  document.getElementById('team_grid').style.display = 'none';
-  document.getElementById('league_grid').style.display = 'block';
-  document.getElementById('back_button_teams').style.display = 'none';
-  document.getElementById('back_button').style.display = 'block';
-}

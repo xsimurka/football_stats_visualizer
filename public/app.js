@@ -436,9 +436,9 @@ function displayTable() {
     ],
     selectable: false,
 
-    rowFormatter: function(row) {
+    rowFormatter: function (row) {
       // Adding custom background color for every other row
-      if(row.getPosition() % 2 === 0) {
+      if (row.getPosition() % 2 === 0) {
         row.getElement().style.backgroundColor = "#f0f4f8";
       } else {
         row.getElement().style.backgroundColor = "#ffffff";
@@ -447,11 +447,188 @@ function displayTable() {
   });
 
   table.on("rowClick", function (e, row) {
-    console.log(`Row clicked: ${row.getData().name}`);
+    const selectedPlayer = row.getData();
+
+    document.getElementById("player_name").textContent = selectedPlayer.name;
+    document.getElementById("player_position").textContent = `Position: ${selectedPlayer.player_positions}`;
+    document.getElementById("player_age").textContent = `Age: ${selectedPlayer.age}`;
+    document.getElementById("player_weight").textContent = `Weight: ${selectedPlayer.weight_kg} kg`;
+    document.getElementById("player_height").textContent = `Height: ${selectedPlayer.height_cm} cm`;
+    document.getElementById("player_foot").textContent = `Strong Foot: ${selectedPlayer.preferred_foot}`;
+    document.getElementById("player_club").textContent = `Club: ${selectedPlayer.club_name}`;
+    document.getElementById("player_nationality").textContent = `Nationality: ${selectedPlayer.nationality_name}`;
+    document.getElementById("player_rating").textContent = `Rating: ${selectedPlayer.overall}`;
+    document.getElementById("player_potential").textContent = `Potential Rating: ${selectedPlayer.potential}`;
+
+    const photoURL = getPlayersPhotoURL(selectedPlayer.player_id, selectedPlayer.fifa_version, 120);
+    const playerPhotoDiv = document.getElementById("player_photo");
+    playerPhotoDiv.style.backgroundImage = `url('${photoURL}')`;
+
+    let labels, dataPoints;
+
+    if (selectedPlayer.player_positions === "GK") {
+      labels = [
+        "Diving",
+        "Handling",
+        "Kicking",
+        "Positioning",
+        "Reflexes",
+        "Speed",
+      ];
+      dataPoints = [
+        +selectedPlayer.goalkeeping_diving,
+        +selectedPlayer.goalkeeping_handling,
+        +selectedPlayer.goalkeeping_kicking,
+        +selectedPlayer.goalkeeping_positioning,
+        +selectedPlayer.goalkeeping_reflexes,
+        +selectedPlayer.goalkeeping_speed,
+      ];
+    } else {
+      labels = ["Pace", "Shooting", "Passing", "Dribbling", "Defending", "Physic"];
+      dataPoints = [
+        +selectedPlayer.pace,
+        +selectedPlayer.shooting,
+        +selectedPlayer.passing,
+        +selectedPlayer.dribbling,
+        +selectedPlayer.defending,
+        +selectedPlayer.physic,
+      ];
+    }
+
+    // Create or update the radar chart
+    let ctx = document.createElement("canvas");
+    let container = document.getElementById("starchart");
+    container.innerHTML = ""; // Clear previous chart
+    container.appendChild(ctx);
+    new Chart(ctx, {
+      type: "radar",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            data: dataPoints,
+            backgroundColor: "lightgrey", // Transparent background
+            borderColor: "black", // Chart line color (if any)
+            pointBackgroundColor: function (context) {
+              const value = context.raw; // Get the value of the point
+              if (value <= 20) return "red"; // Red for 0-20
+              if (value <= 40) return "orange"; // Orange for 20-40
+              if (value <= 60) return "yellow"; // Yellow for 40-60
+              if (value <= 80) return "lightgreen"; // Light Green for 60-80
+              return "darkgreen"; // Dark Green for 80-100
+            },
+            pointBorderColor: "#fff", // White border for the points
+            pointRadius: 6, // Bigger dots
+            borderWidth: 2, // Thinner connecting line
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: {
+            display: false,
+          },
+        },
+        scales: {
+          r: {
+            beginAtZero: true,
+            suggestedMax: 100,
+            grid: {
+              display: false, // Remove grid lines
+            },
+            ticks: {
+              display: false, // Remove numeric scales (20, 40, etc.)
+            },
+            pointLabels: {
+              font: {
+                size: 12,
+                weight: "bold", // Make labels bold
+              },
+              color: function (context) {
+                const value = dataPoints[context.index]; // Get the value of the point
+                if (value <= 20) return "red"; // Red for 0-20
+                if (value <= 40) return "orange"; // Orange for 20-40
+                if (value <= 60) return "yellow"; // Yellow for 40-60
+                if (value <= 80) return "lightgreen"; // Light Green for 60-80
+                return "darkgreen"; // Dark Green for 80-100
+              },
+              callback: function (label, index) {
+                return `${label}`;
+              },
+            },
+          },
+        },
+      },
+    });
+
+    updatePlayerStats(selectedPlayer);
+
+    ctx = document.createElement("canvas");
+    container = document.getElementById("wage_timeline");
+    container.innerHTML = ""; // Clear previous chart
+    container.appendChild(ctx);
+    let timeData = getPlayerWages(selectedPlayer.player_id);
+    createTimelineChart(ctx, timeData, "Player's Wage")
+    
+    ctx = document.createElement("canvas");
+    container = document.getElementById("value_timeline");
+    container.innerHTML = ""; // Clear previous chart
+    container.appendChild(ctx);
+    timeData = getPlayerValues(selectedPlayer.player_id);
+    createTimelineChart(ctx, timeData, "Player's Value")
   });
 
   table.on("rowMouseOver", function (e, row) {
     console.log(`Mouse over row: ${row.getData().name}`);
+  });
+}
+
+function createTimelineChart(ctx, data, label) {
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ['2020', '2021', '2022', '2023', '2024'], // FIFA versions as years
+      datasets: [{
+        data: data,
+        borderColor: '#2a9d8f', // Customize the line color
+        backgroundColor: 'rgba(42, 157, 143, 0.2)', // Fill color under the line
+        tension: 0.4,
+        borderWidth: 2,
+        pointRadius: 5,
+        pointBackgroundColor: '#2a9d8f',
+        pointBorderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        x: {
+          title: {
+            display: true,
+            text: 'Year'
+          },
+        },
+        y: {
+          title: {
+            display: true,
+            text: label
+          },
+          beginAtZero: false,
+          ticks: {
+            callback: function(value) {
+              return value === null ? 'N/A' : value.toLocaleString(); // Handle null values
+            }
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          display: false,
+        },
+      },
+    }
   });
 }
 
@@ -502,4 +679,67 @@ function getUniqueLeaguesByCountry(league_country) {
 function getClubNameById(club_team_id) {
   const club = data.find((row) => row.club_team_id === club_team_id);
   return club ? club.club_name : null; // Return the club name or null if not found
+}
+
+function getPlayersPhotoURL(player_id, fifa_version, size) {
+  const idString = player_id.toString()
+  return `https://cdn.sofifa.net/players/${idString.slice(0, 3)}/${idString.slice(3)}/${fifa_version}_${size}.png`;
+}
+
+function updatePlayerStats(playerData) {
+  document.getElementById('attacking_crossing').innerText = playerData.attacking_crossing || '0';
+  document.getElementById('attacking_finishing').innerText = playerData.attacking_finishing || '0';
+  document.getElementById('attacking_heading_accuracy').innerText = playerData.attacking_heading_accuracy || '0';
+  document.getElementById('attacking_short_passing').innerText = playerData.attacking_short_passing || '0';
+  document.getElementById('attacking_volleys').innerText = playerData.attacking_volleys || '0';
+
+  document.getElementById('skill_dribbling').innerText = playerData.skill_dribbling || '0';
+  document.getElementById('skill_curve').innerText = playerData.skill_curve || '0';
+  document.getElementById('skill_fk_accuracy').innerText = playerData.skill_fk_accuracy || '0';
+  document.getElementById('skill_long_passing').innerText = playerData.skill_long_passing || '0';
+  document.getElementById('skill_ball_control').innerText = playerData.skill_ball_control || '0';
+
+  document.getElementById('movement_acceleration').innerText = playerData.movement_acceleration || '0';
+  document.getElementById('movement_sprint_speed').innerText = playerData.movement_sprint_speed || '0';
+  document.getElementById('movement_agility').innerText = playerData.movement_agility || '0';
+  document.getElementById('movement_reactions').innerText = playerData.movement_reactions || '0';
+  document.getElementById('movement_balance').innerText = playerData.movement_balance || '0';
+
+  document.getElementById('power_shot_power').innerText = playerData.power_shot_power || '0';
+  document.getElementById('power_jumping').innerText = playerData.power_jumping || '0';
+  document.getElementById('power_stamina').innerText = playerData.power_stamina || '0';
+  document.getElementById('power_strength').innerText = playerData.power_strength || '0';
+  document.getElementById('power_long_shots').innerText = playerData.power_long_shots || '0';
+
+  document.getElementById('mentality_aggression').innerText = playerData.mentality_aggression || '0';
+  document.getElementById('mentality_interceptions').innerText = playerData.mentality_interceptions || '0';
+  document.getElementById('mentality_positioning').innerText = playerData.mentality_positioning || '0';
+  document.getElementById('mentality_vision').innerText = playerData.mentality_vision || '0';
+  document.getElementById('mentality_penalties').innerText = playerData.mentality_penalties || '0';
+  document.getElementById('mentality_composure').innerText = playerData.mentality_composure || '0';
+
+  document.getElementById('defending_marking_awareness').innerText = playerData.defending_marking_awareness || '0';
+  document.getElementById('defending_standing_tackle').innerText = playerData.defending_standing_tackle || '0';
+  document.getElementById('defending_sliding_tackle').innerText = playerData.defending_sliding_tackle || '0';
+}
+
+function getPlayerValues(player_id) {
+  let value_eur_per_year = [null, null, null, null, null];
+  const playerData = data.filter(d => d.player_id === player_id);
+
+  playerData.forEach((record) => {
+    const yearIndex = record.fifa_version - 20;
+    value_eur_per_year[yearIndex] = record.value_eur;
+  });
+  return value_eur_per_year;
+}
+
+function getPlayerWages(player_id) {
+  let wage_eur_per_year = [null, null, null, null, null];
+  const playerData = data.filter(d => d.player_id === player_id);
+  playerData.forEach((record) => {
+    const yearIndex = record.fifa_version - 20;
+      wage_eur_per_year[yearIndex] = record.wage_eur;
+  });
+  return wage_eur_per_year;
 }

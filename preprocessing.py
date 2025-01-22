@@ -115,7 +115,31 @@ def filter_empty_club_names(df):
 #     updated_df.to_csv(csv_file, index=False)
 # print(get_clubs_in_league(df, 'Serie A'))
 
-df['max_fifa_version'] = df.groupby('player_id')['fifa_version'].transform('max')
+#df.loc[(df['club_name'] == 'Everton') & (df['league_name'] == 'Primera Division'), 'league_country'] = 'Chile'
 
-# Save the updated DataFrame to a new CSV file
+countries = [ 'Peru', 'Paraguay', 'Ecuador', 'Bolivia']
+
+# Create a dictionary to store the results
+# club_names_by_country = {
+#     country: set(df.loc[df['league_country'] == country, 'club_name'])
+#     for country in countries
+# }
+#
+# # Print the results
+# for country, clubs in club_names_by_country.items():
+#     print(f"Clubs in {country}: {clubs}")
+
+#paraguay = {'Tacuary', 'xNacional Asunción', 'Libertad', 'Cerro Porteño', 'General Caballero JLM', 'xSol de América', 'Sportivo Ameliano', 'x12 de Octubre', 'Olimpia', 'xSportivo Luqueño', 'Guaireña', 'Guaraní'}
+
+
+def print_unique_leagues(club_names):
+    for club in club_names:
+        leagues = df.loc[df['club_name'] == club, 'league_country'].unique()
+        print(f"{club}: {', '.join(leagues)}")
+
+#print_unique_leagues({'River Plate'})
+# print_unique_leagues(paraguay)
+#df.loc[df['club_name'].isin(paraguay), 'league_country'] = "Paraguay"
+df.loc[(df['club_name'] == 'River Plate') & (df['league_name'] == 'Primera División'), 'club_name'] = 'River Plate Asunción'
 df.to_csv(csv_file, index=False)
+

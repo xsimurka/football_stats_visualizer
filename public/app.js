@@ -643,8 +643,9 @@ function getClubLogoURL(club_id, size) {
 
 
 function getLeagueClubIds(country, league, year) {
+  const multiLeagueCountries = new Set(['United Kingdom', 'Italy', 'France', 'Germany', 'Spain'])
   const filteredClubs = data.filter(
-    (row) => row.league_name === league && (row.fifa_version === year || row.league_country === 'Russia') && row.league_country === country
+    (row) => row.league_name === league && (row.fifa_version === year || !multiLeagueCountries.has(row.league_country)) && row.league_country === country
   );
   const uniqueClubIds = new Set(filteredClubs.map((row) => row.club_team_id));
   return uniqueClubIds;

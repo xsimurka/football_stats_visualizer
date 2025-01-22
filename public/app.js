@@ -1,4 +1,5 @@
 var data;
+var displayData;
 var leagueCountries;
 var nationalities;
 var currentSet;
@@ -22,11 +23,8 @@ function getRandomColor() {
     "#ff69b4", // Hot Pink
     "#98fb98", // Pale Green
     "#ff6347", // Tomato
-    "#b0e0e6", // Powder Blue
     "#ffa07a", // Light Salmon
-    "#5f9ea0", // Cadet Blue
     "#ffff00", // Yellow
-    "#f08080", // Light Coral
     "#ffd700", // Gold
   ];
   return colors[Math.floor(Math.random() * colors.length)];
@@ -50,7 +48,7 @@ function backToMap() {
   document.getElementById("map_div").classList.remove("hide");
   document.getElementById("league_div").classList.remove("show");
   document.getElementById("team_div").classList.remove("show");
-  table.setData(data);
+  table.setData(displayData);
 }
 
 function backToLeagues() {
@@ -64,7 +62,7 @@ document.querySelectorAll('input[name="mode"]').forEach((radio) => {
   radio.addEventListener("change", (event) => {
     currentSet = event.target.value === "league" ? leagueCountries : nationalities;
     setCountryStylesAndInteractivity(geoLayer);
-    table.setData(data);
+    table.setData(displayData);
   });
 });
 
@@ -161,6 +159,7 @@ d3.csv("players_all_preprocessed.csv", (d) => {
     rcb: +d.rcb,
     rb: +d.rb,
     gk: +d.gk,
+    max_fifa_version: +d.max_fifa_version
   }
 })
   .then(function (csvData) {
@@ -168,6 +167,7 @@ d3.csv("players_all_preprocessed.csv", (d) => {
     leagueCountries = new Set(data.map(row => row["league_country"]));
     nationalities = new Set(data.map(row => row["nationality_name"]));
     currentSet = leagueCountries;
+    displayData = data.filter(row => row.fifa_version === row.max_fifa_version)
     displayMap();
     displayTable();
   });
@@ -204,10 +204,10 @@ function displayMap() {
     scrollWheelZoom: true,
   });
 
-  fetch("https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson")
+  fetch("./countries.geojson")
     .then((response) => response.json())
-    .then((data) => {
-      geoLayer = L.geoJSON(data, {
+    .then((countryData) => {
+      geoLayer = L.geoJSON(countryData, {
         onEachFeature: function (feature, layer) {
           const countryName = feature.properties.ADMIN;
 
@@ -366,7 +366,7 @@ function showTeams(countryName, leagueName) {
 
 function displayTable() {
   table = new Tabulator("#table_div", {
-    data: data,
+    data: displayData,
     layout: "fitColumns",
     columns: [
       {
@@ -644,30 +644,30 @@ function getClubLogoURL(club_id, size) {
 
 function getLeagueClubIds(country, league, year) {
   const filteredClubs = data.filter(
-    (row) => row.league_name === league && row.fifa_version === year && row.league_country === country
+    (row) => row.league_name === league && (row.fifa_version === year || row.league_country === 'Russia') && row.league_country === country
   );
   const uniqueClubIds = new Set(filteredClubs.map((row) => row.club_team_id));
   return uniqueClubIds;
 }
 
 function selectByNation(nationality) {
-  return data.filter((row) =>
-    row.fifa_version === fifaVersion && row.nationality_name === nationality);
+  return displayData.filter((row) =>
+    row.nationality_name === nationality);
 }
 
 function selectByLeagueCountry(league_country) {
-  return data.filter((row) =>
-    row.fifa_version === fifaVersion && row.league_country === league_country);
+  return displayData.filter((row) =>
+    row.league_country === league_country);
 }
 
 function selectByLeague(league_country, league_name) {
-  return data.filter((row) =>
-    row.fifa_version === fifaVersion && row.league_name === league_name && row.league_country === league_country);
+  return displayData.filter((row) =>
+    row.league_name === league_name && row.league_country === league_country);
 }
 
 function selectByClub(league_country, league_name, club_name) {
-  return data.filter((row) =>
-    row.fifa_version === fifaVersion && row.club_name === club_name && row.league_name === league_name && row.league_country === league_country);
+  return displayData.filter((row) =>
+    row.club_name === club_name && row.league_name === league_name && row.league_country === league_country);
 }
 
 function getUniqueLeaguesByCountry(league_country) {

@@ -115,4 +115,7 @@ def filter_empty_club_names(df):
 #     updated_df.to_csv(csv_file, index=False)
 # print(get_clubs_in_league(df, 'Serie A'))
 
-filter_empty_club_names(df).to_csv(csv_file, index=False)
+df['max_fifa_version'] = df.groupby('player_id')['fifa_version'].transform('max')
+
+# Save the updated DataFrame to a new CSV file
+df.to_csv(csv_file, index=False)

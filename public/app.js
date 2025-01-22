@@ -47,18 +47,15 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 function backToMap() {
-  document.getElementById("map_div").style.display = "block";
+  document.getElementById("map_div").classList.remove("hide");
   document.getElementById("league_div").classList.remove("show");
   document.getElementById("team_div").classList.remove("show");
-  document.getElementById("back_button_leagues").style.display = "none";
   table.setData(data);
 }
 
 function backToLeagues() {
   document.getElementById("team_div").classList.remove("show");
   document.getElementById("league_div").classList.add("show");
-  document.getElementById("back_button_teams").style.display = "none";
-  document.getElementById("back_button_leagues").style.display = "block";
   table.setData(selectByLeagueCountry(selectedCountry));
 }
 
@@ -270,7 +267,9 @@ function mapClick(countryName) {
     const filteredData = selectByNation(countryName);
     table.setData(filteredData);
   } else { // leagues
+    document.getElementById("map_div").classList.add("hide");
     let leagues = getUniqueLeaguesByCountry(countryName);
+    console.log(leagues);
     if (leagues.size > 1) {
       showLeagues(countryName, leagues);
     } else {
@@ -279,175 +278,228 @@ function mapClick(countryName) {
   }
 }
 
-  function showLeagues(countryName, leagues) {
-    console.log(`Showing leagues for: ${countryName}`);
+function showLeagues(countryName, leagues) {
+  console.log(`Showing leagues for: ${countryName}`);
 
-    document.getElementById('map_div').style.display = 'none';
-    document.getElementById('league_div').classList.add("show");
-    document.getElementById('back_button_leagues').style.display = 'block';
+  document.getElementById('league_div').classList.add("show");
 
-    const leagueContainer = document.getElementById('league_grid');
-    leagueContainer.innerHTML = '';
+  const leagueContainer = document.getElementById('league_grid');
+  leagueContainer.innerHTML = '';
 
-    leagues.forEach(league => {
-      const leagueWrapper = document.createElement('div');
-      leagueWrapper.className = 'league-wrapper';
-      const leagueBadge = document.createElement('div');
-      leagueBadge.className = 'badge';
+  leagues.forEach(league => {
+    const leagueWrapper = document.createElement('div');
+    leagueWrapper.className = 'league-wrapper';
+    const leagueBadge = document.createElement('div');
+    leagueBadge.className = 'badge';
 
-      let badge = getLeagueBadgePath(league)
-      leagueBadge.style.backgroundImage = `url(${badge})`;
-      leagueBadge.style.backgroundSize = 'contain';
-      leagueBadge.style.backgroundRepeat = 'no-repeat';
-      leagueBadge.style.width = '100px';
-      leagueBadge.style.height = '100px';
-      leagueBadge.style.margin = '0 auto';
+    let badge = getLeagueBadgePath(league)
+    leagueBadge.style.backgroundImage = `url(${badge})`;
+    leagueBadge.style.backgroundSize = 'contain';
+    leagueBadge.style.backgroundRepeat = 'no-repeat';
+    leagueBadge.style.width = '100px';
+    leagueBadge.style.height = '100px';
+    leagueBadge.style.margin = '0 auto';
 
-      leagueBadge.onclick = function () {
-        selectedLeague = league;
-        showTeams(countryName, league);
-      };
+    leagueBadge.onclick = function () {
+      selectedLeague = league;
+      showTeams(countryName, league);
+    };
 
-      const leagueName = document.createElement('div');
-      leagueName.className = 'league-name';
-      leagueName.textContent = league;
-      leagueName.style.textAlign = 'center';
-      leagueName.style.marginTop = '10px';
-      leagueWrapper.appendChild(leagueBadge);
-      leagueWrapper.appendChild(leagueName);
-      leagueContainer.appendChild(leagueWrapper);
+    const leagueName = document.createElement('div');
+    leagueName.className = 'league-name';
+    leagueName.textContent = league;
+    leagueName.style.textAlign = 'center';
+    leagueName.style.marginTop = '10px';
+    leagueWrapper.appendChild(leagueBadge);
+    leagueWrapper.appendChild(leagueName);
+    leagueContainer.appendChild(leagueWrapper);
 
-      const filteredData = selectByLeagueCountry(countryName)
+    const filteredData = selectByLeagueCountry(countryName)
+    table.setData(filteredData);
+  });
+}
+
+function showTeams(countryName, leagueName) {
+  console.log(`Showing teams for: ${leagueName}`);
+
+  document.getElementById('league_div').classList.remove("show");
+  document.getElementById('team_div').classList.add("show");
+
+  const teamContainer = document.getElementById('team_grid');
+  teamContainer.innerHTML = '';
+
+  const teams = getLeagueClubIds(countryName, leagueName, 24);
+
+  teams.forEach(team => {
+    const clubName = getClubNameById(team);
+    const teamBadge = document.createElement('div');
+    teamBadge.className = 'badge';
+    let logo;
+    logo = getClubLogoURL(team, 120)
+    teamBadge.style.backgroundImage = `url(${logo})`;
+    teamBadge.style.backgroundSize = 'contain';
+    teamBadge.style.backgroundRepeat = 'no-repeat';
+    teamBadge.style.width = '100px';
+    teamBadge.style.height = '100px';
+    teamBadge.style.margin = '0 auto';
+
+    const teamName = document.createElement('div');
+    teamName.textContent = clubName;
+    teamName.style.textAlign = 'center';
+    teamName.style.marginTop = '5px';
+    teamBadge.appendChild(teamName);
+
+    teamBadge.onclick = function () {
+      selectedTeam = clubName;
+      console.log(`Clicked on team: ${clubName}`);
+      const filteredData = selectByClub(countryName, leagueName, clubName);
       table.setData(filteredData);
-    });
-  }
+    };
 
-  function showTeams(countryName, leagueName) {
-    console.log(`Showing teams for: ${leagueName}`);
+    teamContainer.appendChild(teamBadge);
 
-    document.getElementById('league_div').classList.remove("show");
-    document.getElementById('team_div').classList.add("show");
-    document.getElementById('back_button_teams').style.display = 'block';
-
-    const teamContainer = document.getElementById('team_grid');
-    teamContainer.innerHTML = '';
-
-    const teams = getLeagueClubIds(countryName, leagueName, 24);
-
-    teams.forEach(team => {
-      const clubName = getClubNameById(team);
-      const teamBadge = document.createElement('div');
-      teamBadge.className = 'badge';
-
-      let logo = getClubLogoURL(team, 120)
-      teamBadge.style.backgroundImage = `url(${logo})`;
-      teamBadge.style.backgroundSize = 'contain';
-      teamBadge.style.backgroundRepeat = 'no-repeat';
-      teamBadge.style.width = '100px';
-      teamBadge.style.height = '100px';
-      teamBadge.style.margin = '0 auto';
-
-      const teamName = document.createElement('div');
-      teamName.textContent = clubName;
-      teamName.style.textAlign = 'center';
-      teamName.style.marginTop = '5px';
-      teamBadge.appendChild(teamName);
-
-      teamBadge.onclick = function () {
-        selectedTeam = clubName;
-        console.log(`Clicked on team: ${clubName}`);
-        const filteredData = selectByClub(countryName, leagueName, clubName);
-        table.setData(filteredData);
-      };
-
-      teamContainer.appendChild(teamBadge);
-
-      const filteredData = selectByLeague(countryName, leagueName);
-      table.setData(filteredData);
-    });
-  }
+    const filteredData = selectByLeague(countryName, leagueName);
+    table.setData(filteredData);
+  });
+}
 
 
-  function displayTable() {
-    table = new Tabulator("#table_div", {
-      data: data,
-      layout: "fitDataFill",
-      columns: [
-        {
-          title: "Name",
-          field: "name",
-          headerSort: true,
-          resizable: false,
-        },
-        {
-          title: "Value",
-          field: "value_eur",
-          headerSort: true,
-          resizable: false,
-        },
-        {
-          title: "Wage",
-          field: "wage_eur",
-          headerSort: true,
-          resizable: false,
-        },
-      ],
-      selectable: false,
-    });
+function displayTable() {
+  table = new Tabulator("#table_div", {
+    data: data,
+    layout: "fitColumns",
+    columns: [
+      {
+        title: "Name",
+        field: "name",
+        headerSort: true,
+        resizable: false,
+        formatter: "plaintext",  // Ensures proper text formatting
+      },
+      {
+        title: "Rating",
+        field: "overall",
+        headerSort: true,
+        resizable: false,
+        width: 90,
+        sorter: "number",  // Sorting by numbers for better handling of ratings
+        headerColor: "#2a9d8f",  // Adding custom header color
+        cssClass: "rating-column" // Adding a custom class for CSS styling
+      },
+      {
+        title: "Age",
+        field: "age",
+        headerSort: true,
+        resizable: false,
+        width: 80,
+        sorter: "number"
+      },
+      {
+        title: "Positions",
+        field: "player_positions",
+        headerSort: false,
+        resizable: false,
+      },
+      {
+        title: "Strong foot",
+        field: "preferred_foot",
+        headerSort: false,
+        resizable: false,
+      },
+      {
+        title: "Value (€)",
+        field: "value_eur",
+        headerSort: true,
+        resizable: false,
+        width: 120
+      },
+      {
+        title: "Wage (€)",
+        field: "wage_eur",
+        headerSort: true,
+        resizable: false,
+        width: 120
+      },
+      {
+        title: "Release clause (€)",
+        field: "release_clause_eur",
+        headerSort: true,
+        resizable: false,
+        width: 180,
+      },
+      {
+        title: "Nationality",
+        field: "nationality_name",
+        headerSort: false,
+        resizable: false,
+      },
+    ],
+    selectable: false,
 
-    table.on("rowClick", function (e, row) {
-      console.log(`Row clicked: ${row.getData().name}`);
-    });
+    rowFormatter: function(row) {
+      // Adding custom background color for every other row
+      if(row.getPosition() % 2 === 0) {
+        row.getElement().style.backgroundColor = "#f0f4f8";
+      } else {
+        row.getElement().style.backgroundColor = "#ffffff";
+      }
+    },
+  });
 
-    table.on("rowMouseOver", function (e, row) {
-      console.log(`Mouse over row: ${row.getData().name}`);
-    });
-  }
+  table.on("rowClick", function (e, row) {
+    console.log(`Row clicked: ${row.getData().name}`);
+  });
 
-  function getLeagueBadgePath(league) {
-    return "./premier-league.png"
-  }
+  table.on("rowMouseOver", function (e, row) {
+    console.log(`Mouse over row: ${row.getData().name}`);
+  });
+}
 
-  function getClubLogoURL(club_id, size) {
-    return `https://cdn.sofifa.net/teams/${club_id}/${size}.png`
-  }
+function getLeagueBadgePath(league) {
+  return "./premier-league.png"
+}
 
-  function getLeagueClubIds(country, league, year) {
-    const filteredClubs = data.filter(
-      (row) => row.league_name === league && row.fifa_version === year && row.league_country === country
-    );
-    const uniqueClubIds = new Set(filteredClubs.map((row) => row.club_team_id));
-    return uniqueClubIds;
-  }
+function getClubLogoURL(club_id, size) {
+  const logoURL = `https://cdn.sofifa.net/teams/${club_id}/${size}.png`;
+  return logoURL;
+}
 
-  function selectByNation(nationality) {
-    return data.filter((row) =>
-      row.fifa_version === fifaVersion && row.nationality_name === nationality);
-  }
 
-  function selectByLeagueCountry(league_country) {
-    return data.filter((row) =>
-      row.fifa_version === fifaVersion && row.league_country === league_country);
-  }
+function getLeagueClubIds(country, league, year) {
+  const filteredClubs = data.filter(
+    (row) => row.league_name === league && row.fifa_version === year && row.league_country === country
+  );
+  const uniqueClubIds = new Set(filteredClubs.map((row) => row.club_team_id));
+  return uniqueClubIds;
+}
 
-  function selectByLeague(league_country, league_name) {
-    return data.filter((row) =>
-      row.fifa_version === fifaVersion && row.league_name === league_name && row.league_country === league_country);
-  }
+function selectByNation(nationality) {
+  return data.filter((row) =>
+    row.fifa_version === fifaVersion && row.nationality_name === nationality);
+}
 
-  function selectByClub(league_country, league_name, club_name) {
-    return data.filter((row) =>
-      row.fifa_version === fifaVersion && row.club_name === club_name && row.league_name === league_name && row.league_country === league_country);
-  }
+function selectByLeagueCountry(league_country) {
+  return data.filter((row) =>
+    row.fifa_version === fifaVersion && row.league_country === league_country);
+}
 
-  function getUniqueLeaguesByCountry(league_country) {
-    const filteredData = data.filter((row) =>
-      row.league_country === league_country && row.fifa_version === 24);
-    return new Set(filteredData.map(row => row.league_name));
-  }
+function selectByLeague(league_country, league_name) {
+  return data.filter((row) =>
+    row.fifa_version === fifaVersion && row.league_name === league_name && row.league_country === league_country);
+}
 
-  function getClubNameById(club_team_id) {
-    const club = data.find((row) => row.club_team_id === club_team_id);
-    return club ? club.club_name : null; // Return the club name or null if not found
-  }
-  
+function selectByClub(league_country, league_name, club_name) {
+  return data.filter((row) =>
+    row.fifa_version === fifaVersion && row.club_name === club_name && row.league_name === league_name && row.league_country === league_country);
+}
+
+function getUniqueLeaguesByCountry(league_country) {
+  const filteredData = data.filter((row) =>
+    row.league_country === league_country);
+  return new Set(filteredData.map(row => row.league_name));
+}
+
+function getClubNameById(club_team_id) {
+  const club = data.find((row) => row.club_team_id === club_team_id);
+  return club ? club.club_name : null; // Return the club name or null if not found
+}

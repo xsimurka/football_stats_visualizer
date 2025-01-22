@@ -1,45 +1,97 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Football Players Stats Visualizer</title>
-    <link href="style.css" rel="stylesheet">
-    <script src="https://d3js.org/d3.v7.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
-    <link href="https://unpkg.com/tabulator-tables@6.3.0/dist/css/tabulator.min.css" rel="stylesheet"> 
-    <script src="https://unpkg.com/tabulator-tables@6.3.0/dist/js/tabulator.min.js"></script>
-    <link href="https://unpkg.com/leaflet/dist/leaflet.css" rel="stylesheet">
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script type="module" src="app.js"></script>
-  </head>
-  <body>
-    <div class="container">
-      <div id="map_div">
-        <div id="radio_buttons">
-          <label>
-            <input type="radio" name="mode" value="league" checked> League
-          </label>
-          <label>
-            <input type="radio" name="mode" value="nationality"> Nationality
-          </label>
-        </div>
-      </div>
-      <div id="table_div" class="tabulator-container"></div>
-      
-      <div id="reference_player"></div>
 
-      <div id="compared_player"></div>
-      
-      <div id="league_div" class="badge-div">
-        <button id="back_button_leagues" class="back-button">Back</button>
-        <div id="league_grid" class="badge-grid"></div>
-      </div>
-      
-      <div id="team_div" class="badge-div">
-        <button id="back_button_teams" class="back-button">Back</button>
-        <div id="team_grid" class="badge-grid"></div>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Football Players Stats Visualizer</title>
+  <link href="style.css" rel="stylesheet">
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+  <link href="https://unpkg.com/tabulator-tables@6.3.0/dist/css/tabulator.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/tabulator-tables@6.3.0/dist/js/tabulator.min.js"></script>
+  <link href="https://unpkg.com/leaflet/dist/leaflet.css" rel="stylesheet">
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script type="module" src="app.js"></script>
+</head>
+
+<body>
+  <div class="container">
+    <div id="map_div">
+      <div id="radio_buttons">
+        <label>
+          <input type="radio" name="mode" value="league" checked> League
+        </label>
+        <label>
+          <input type="radio" name="mode" value="nationality"> Nationality
+        </label>
       </div>
     </div>
-  </body>
+    <div id="table_div" class="tabulator-container"></div>
+
+    <div id="league_div" class="badge-div">
+      <button id="back_button_leagues" class="back-button">Back</button>
+      <div id="league_grid" class="badge-grid"></div>
+    </div>
+
+    <div id="team_div" class="badge-div">
+      <button id="back_button_teams" class="back-button">Back</button>
+      <div id="team_grid" class="badge-grid"></div>
+    </div>
+
+
+    <div id="reference_player">
+      <!-- Top container -->
+      <div class="container top-container">
+        <!-- Left (Player photo) -->
+        <div class="left" style="background-image: url('player-placeholder.jpg');"></div>
+
+        <!-- Center (Player info) -->
+        <div class="center">
+          <div class="player-name">Player Name</div>
+          <div class="player-details">
+            <div>Position: Forward</div>
+            <div>Age: 28</div>
+            <div>Weight: 75kg</div>
+            <div>Height: 180cm</div>
+            <div>Strong Foot: Right</div>
+            <div>Club: FC Barcelona</div>
+            <div>Nationality: Spain</div>
+            <div>Rating: 85</div>
+            <div>Potential Rating: 90</div>
+          </div>
+        </div>
+
+        <!-- Right (Starchart) -->
+        <div class="right" style="background-image: url('starchart-placeholder.jpg');"></div>
+      </div>
+
+      <!-- Middle container -->
+      <div class="container middle-container">
+        <!-- Heatmap -->
+        <div class="heatmap">
+          Heatmap Placeholder
+        </div>
+
+        <!-- Stats -->
+        <div class="stats">
+          <div class="stat">Speed: 90</div>
+          <div class="stat">Dribbling: 85</div>
+          <div class="stat">Passing: 88</div>
+          <div class="stat">Shooting: 80</div>
+          <!-- Add more stats as needed -->
+        </div>
+      </div>
+
+      <!-- Bottom container -->
+      <div class="container bottom-container">
+        <!-- Wage plot -->
+        <div class="plot">Wage Plot Placeholder</div>
+
+        <!-- Market value plot -->
+        <div class="plot">Market Value Plot Placeholder</div>
+      </div>
+    </div>
+  </div>
+
 </html>

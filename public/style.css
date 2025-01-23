@@ -41,6 +41,11 @@ body {
   opacity: 0;
 }
 
+.country-label {
+  white-space: nowrap;
+  color: black; /* Text color */
+}
+
 /* League and team grids */
 #league_div, #team_div {
   position: absolute;
@@ -74,7 +79,7 @@ body {
   width: 50%; /* Increased width */
   height: 50%;
   background-color: #83817f;
-  font-size: 1.2rem;
+  font-size: 1rem;
   font-weight: bold;
 }
 
@@ -130,20 +135,20 @@ body {
   position: absolute;
   top: 10px;
   right: 10px;
-  background: rgba(255, 255, 255, 1);
-  padding: 5px;
+  background-color: white;
+  border: 1px solid #ccc;
+  padding: 10px;
   border-radius: 5px;
-  font-size: 14px;
-  font-weight: bold;
-  z-index: 1500;
-  opacity: 1;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  font-family: Arial, sans-serif;
+  z-index: 1000;
 }
 
 #radio_buttons label {
-  margin-right: 15px;
-  cursor: pointer;
-  color: rgba(37, 34, 34, 1); /* Increase opacity of label text */
-  opacity: 1;
+  font-weight: bold;
+  margin-right: 5px;
+  font-size: 14px;
+  z-index: 1000;
 }
 
 /* Reference player */
@@ -300,4 +305,80 @@ body {
 
 #reference_player .bottom-container .plot:last-child {
   margin-right: 0; /* No margin on the last plot */
+}
+
+/* Positioning the dropdown menu */
+#fifa_version_menu {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: white;
+  border: 1px solid #ccc;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  font-family: Arial, sans-serif;
+  z-index: 1000;
+}
+
+/* Dropdown styling */
+#fifa_version_select {
+  margin-top: 5px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  z-index: 1000;
+}
+
+/* Label styling */
+#fifa_version_menu label {
+  font-weight: bold;
+  margin-right: 5px;
+  font-size: 14px;
+  z-index: 1000;
+}
+
+.search-container {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background-color: white;
+  border: 1px solid #ccc;
+  padding: 10px;
+  border-radius: 5px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  font-family: Arial, sans-serif;
+  z-index: 1000;
+}
+
+#search_input {
+  padding: 5px;
+  width: 150px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.dropdown-list {
+  max-height: 150px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  margin-top: 5px;
+  background-color: white;
+  border-radius: 5px;
+  display: none;
+}
+
+.dropdown-item {
+  padding: 5px;
+  cursor: pointer;
+}
+
+.dropdown-item:hover {
+  background-color: #ddd;
+}
+
+#search_button {
+  margin-top: 5px;
+  padding: 5px 10px;
+  cursor: pointer;
 }

@@ -2,7 +2,9 @@ import pandas as pd
 
 # Example usage
 csv_file = "./public/players_all_preprocessed.csv"  # Replace with the actual path to your dataset
+csv_copy = "./public/players_all_preprocessed_copy.csv"
 df = pd.read_csv(csv_file)
+df_copy = pd.read_csv(csv_copy)
 
 
 def get_unique_league_names(df):
@@ -140,6 +142,16 @@ def print_unique_leagues(club_names):
 #print_unique_leagues({'River Plate'})
 # print_unique_leagues(paraguay)
 #df.loc[df['club_name'].isin(paraguay), 'league_country'] = "Paraguay"
-df.loc[(df['club_name'] == 'River Plate') & (df['league_name'] == 'Primera División'), 'club_name'] = 'River Plate Asunción'
-df.to_csv(csv_file, index=False)
 
+
+#df.loc[(df['league_country'] == 'United Kingdom') & (df['league_name'] == 'Premiership'), 'league_name'] = 'Scottish Premiership'
+#df.to_csv(csv_file, index=False)
+
+
+filtered_records = df_copy[df_copy['club_name'].isin(['Shakhtar Donetsk', 'Dynamo Kyiv'])]
+
+# Append the filtered records to the second dataframe
+df_copy = pd.concat([df_copy, filtered_records], ignore_index=True)
+
+
+df_copy.to_csv(csv_file, index=False)

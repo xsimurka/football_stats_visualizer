@@ -27,6 +27,24 @@
           <input type="radio" name="mode" value="nationality"> Nationality
         </label>
       </div>
+
+      <div id="fifa_version_menu" class="dropdown-menu">
+        <label for="fifa_version_select">FIFA Version:</label>
+        <select id="fifa_version_select">
+          <option value="20">20</option>
+          <option value="21">21</option>
+          <option value="22">22</option>
+          <option value="23">23</option>
+          <option value="24" selected>24</option>
+        </select>
+      </div>
+
+      <div id="search_area" class="search-container">
+        <input type="text" id="search_input" placeholder="Search..." />
+        <!-- Dropdown for filtered terms -->
+        <div id="dropdown_list" class="dropdown-list"></div>
+        <button id="search_button">Search</button>
+      </div>
     </div>
     <div id="table_div" class="tabulator-container"></div>
 

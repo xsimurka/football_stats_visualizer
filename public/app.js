@@ -120,8 +120,8 @@ d3.csv("players_all_preprocessed.csv", (d) => {
     leagueCountries = new Set(selectedVersionData.map(row => row["league_country"]));
     nationalities = new Set(selectedVersionData.map(row => row["nationality_name"]));
     currentSet = leagueCountries;
-    showOnlySelectedLabels(currentSet)
     displayMap();
+    showOnlySelectedLabels(currentSet)
     displayTable();
   });
 
@@ -260,7 +260,7 @@ function displayMap() {
 
           const label = L.divIcon({
             className: "country-label",
-            html: `<div id="label-${countryId}" style="white-space: nowrap; font-size: ${initialFontSize}px;">${countryName}</div>`,
+            html: `<div id="label-${countryId}" style="white-space: nowrap; font-size: ${initialFontSize}px; opacity: 0;">${countryName}</div>`,
           });
 
           const marker = L.marker(centroid, { icon: label, interactive: false });
@@ -288,7 +288,6 @@ function displayMap() {
 }
 
 function showOnlySelectedLabels(selectedCountries) {
-  // Normalize country names for ID matching
   const normalizedSelectedCountries = new Set(
     Array.from(selectedCountries).map((country) =>
       country.replace(/\s+/g, "-").toLowerCase()
@@ -656,6 +655,8 @@ function playerDisplayStats(selectedPlayer) {
 
 
 function createTimelineChart(ctx, data, label) {
+  const maxDataValue = Math.max(...data);
+
   let chart = new Chart(ctx, {
     type: 'line',
     data: {
@@ -685,6 +686,7 @@ function createTimelineChart(ctx, data, label) {
             text: label
           },
           beginAtZero: false,
+          max: maxDataValue * 1.05,
           ticks: {
             callback: function (value) {
               return value === null ? 'N/A' : value.toLocaleString(); // Handle null values
@@ -699,7 +701,7 @@ function createTimelineChart(ctx, data, label) {
       },
     }
   });
-  updateYScale(chart)
+  //updateYScale(chart)
   return chart;
 }
 
@@ -790,41 +792,33 @@ function getPlayersPhotoURL(player_id, fifa_version, size) {
   return `https://cdn.sofifa.net/players/${idString.slice(0, 3)}/${idString.slice(3)}/${fifa_version}_${size}.png`;
 }
 
+function getColor(value) {
+  if (value <= 20) return "red"; // Red for 0-20
+  if (value <= 40) return "orange"; // Orange for 20-40
+  if (value <= 60) return "yellow"; // Yellow for 40-60
+  if (value <= 80) return "lightgreen"; // Light Green for 60-80
+  return "darkgreen"; // Dark Green for 80-100
+}
+
 function updatePlayerStats(playerData) {
-  document.getElementById('attacking_crossing').innerText = playerData.attacking_crossing || '0';
-  document.getElementById('attacking_finishing').innerText = playerData.attacking_finishing || '0';
-  document.getElementById('attacking_heading_accuracy').innerText = playerData.attacking_heading_accuracy || '0';
-  document.getElementById('attacking_short_passing').innerText = playerData.attacking_short_passing || '0';
-  document.getElementById('attacking_volleys').innerText = playerData.attacking_volleys || '0';
+  const stats = [
+    'attacking_crossing', 'attacking_finishing', 'attacking_heading_accuracy', 'attacking_short_passing', 'attacking_volleys',
+    'skill_dribbling', 'skill_curve', 'skill_fk_accuracy', 'skill_long_passing', 'skill_ball_control',
+    'movement_acceleration', 'movement_sprint_speed', 'movement_agility', 'movement_reactions', 'movement_balance',
+    'power_shot_power', 'power_jumping', 'power_stamina', 'power_strength', 'power_long_shots',
+    'mentality_aggression', 'mentality_interceptions', 'mentality_positioning', 'mentality_vision', 'mentality_penalties', 'mentality_composure',
+    'defending_marking_awareness', 'defending_standing_tackle', 'defending_sliding_tackle'
+  ];
 
-  document.getElementById('skill_dribbling').innerText = playerData.skill_dribbling || '0';
-  document.getElementById('skill_curve').innerText = playerData.skill_curve || '0';
-  document.getElementById('skill_fk_accuracy').innerText = playerData.skill_fk_accuracy || '0';
-  document.getElementById('skill_long_passing').innerText = playerData.skill_long_passing || '0';
-  document.getElementById('skill_ball_control').innerText = playerData.skill_ball_control || '0';
+  stats.forEach(stat => {
+    const element = document.getElementById(stat);
+    const value = playerData[stat] || 0;
+    const color = getColor(value);
 
-  document.getElementById('movement_acceleration').innerText = playerData.movement_acceleration || '0';
-  document.getElementById('movement_sprint_speed').innerText = playerData.movement_sprint_speed || '0';
-  document.getElementById('movement_agility').innerText = playerData.movement_agility || '0';
-  document.getElementById('movement_reactions').innerText = playerData.movement_reactions || '0';
-  document.getElementById('movement_balance').innerText = playerData.movement_balance || '0';
-
-  document.getElementById('power_shot_power').innerText = playerData.power_shot_power || '0';
-  document.getElementById('power_jumping').innerText = playerData.power_jumping || '0';
-  document.getElementById('power_stamina').innerText = playerData.power_stamina || '0';
-  document.getElementById('power_strength').innerText = playerData.power_strength || '0';
-  document.getElementById('power_long_shots').innerText = playerData.power_long_shots || '0';
-
-  document.getElementById('mentality_aggression').innerText = playerData.mentality_aggression || '0';
-  document.getElementById('mentality_interceptions').innerText = playerData.mentality_interceptions || '0';
-  document.getElementById('mentality_positioning').innerText = playerData.mentality_positioning || '0';
-  document.getElementById('mentality_vision').innerText = playerData.mentality_vision || '0';
-  document.getElementById('mentality_penalties').innerText = playerData.mentality_penalties || '0';
-  document.getElementById('mentality_composure').innerText = playerData.mentality_composure || '0';
-
-  document.getElementById('defending_marking_awareness').innerText = playerData.defending_marking_awareness || '0';
-  document.getElementById('defending_standing_tackle').innerText = playerData.defending_standing_tackle || '0';
-  document.getElementById('defending_sliding_tackle').innerText = playerData.defending_sliding_tackle || '0';
+    // Update the value and apply background color
+    element.innerText = value;
+    element.style.backgroundColor = color;
+  });
 }
 
 function getPlayerValues(player_id) {

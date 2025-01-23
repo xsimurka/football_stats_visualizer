@@ -24,7 +24,7 @@ body {
   position: absolute;
   top: 0;
   left: 0;
-  width: 50%; /* Increased width */
+  width: 45%; /* Increased width */
   height: 50%;
   background-color: #a8dadc;
   display: flex;
@@ -51,7 +51,7 @@ body {
   position: absolute;
   top: 0;
   left: 0;
-  width: 50%; /* Increased width */
+  width: 45%; /* Increased width */
   height: 50%;
   background-color: rgb(255, 255, 255);
   display: flex;
@@ -157,7 +157,7 @@ body {
   top: 0;
   bottom: 0;
   right: 0;
-  width: 50%; /* Keep the width as is */
+  width: 55%; /* Keep the width as is */
   height: 100%; /* Full height */
   background-color: #2a9d8f;
   display: flex;
@@ -240,7 +240,6 @@ body {
 /* Middle container with heatmap and stats */
 #reference_player .middle-container {
   display: flex;
-  justify-content: space-between;
   justify-content: center; /* Center horizontally */
 }
 
@@ -248,7 +247,7 @@ body {
   background-color: #f4a261;
   border-radius: 10px;
   height: 100%;
-  width: 25%; /* Takes 1/3 of the container */
+  width: 15%; /* Takes 1/3 of the container */
   margin-right: 10px;
   text-align: center;
   font-size: 1rem;
@@ -256,14 +255,14 @@ body {
 }
 
 #reference_player .middle-container .stats {
-  width: 75%; /* Takes 2/3 of the container */
+  width: 100%; /* Takes 2/3 of the container */
   background-color: #264653;
-  padding: 10px;
-  border-radius: 10px;
+  padding: 15px;
+  border-radius: 8px;
   color: #ffffff;
   display: grid;
   grid-template-columns: repeat(6, 1fr); /* Creates 6 equal columns */
-  gap: 10px; /* Adds space between columns */
+  gap: 5px; /* Adds space between columns */
   justify-content: center; /* Center horizontally */
 }
 
@@ -274,13 +273,39 @@ body {
 }
 
 #reference_player .middle-container .stat {
-  margin-bottom: 10px;
+  margin-bottom: 20px;
   font-size: 0.75rem; /* Smaller font */
   font-weight: 600;
 }
 
-#reference_player .middle-container .stat span {
-  font-weight: bold; /* Make the values bold */
+.stat .stat-value {
+  display: inline-block;
+  width: 20px; /* Smaller default size */
+  height: 20px;
+  line-height: 20px;
+  text-align: center;
+  border-radius: 4px;
+  color: white;
+  margin-right: 4px;
+  font-size: 0.6rem; /* Smaller font for the span content */
+  transition: all 0.2s ease-in-out; /* Smooth resizing */
+  background-color: #ff0000; /* Default rectangle color */
+  vertical-align: middle;
+}
+
+.stat .difference {
+  display: inline-block;
+  width: 13px; /* Smaller default size */
+  height: 13px;
+  line-height: 13px;
+  text-align: center;
+  border-radius: 4px;
+  color: white;
+  font-size: 0.6rem; /* Smaller font for the span content */
+  transition: all 0.2s ease-in-out; /* Smooth resizing */
+  background-color: #ff0000; /* Default rectangle color */
+  vertical-align: middle;
+  margin-left: 3px;
 }
 
 /* Bottom container with two plots */

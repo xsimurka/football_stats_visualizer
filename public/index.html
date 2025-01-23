@@ -87,67 +87,150 @@
 
       <!-- Middle container -->
       <div class="container middle-container">
-        <!-- Heatmap -->
-        <div class="heatmap">
-          Heatmap Placeholder
-        </div>
-
         <!-- Stats -->
         <div class="stats">
           <!-- Attacking Stats -->
           <div class="stats-column">
-            <div class="stat">Crossing: <span id="attacking_crossing">0</span></div>
-            <div class="stat">Finishing: <span id="attacking_finishing">0</span></div>
-            <div class="stat">Heading Accuracy: <span id="attacking_heading_accuracy">0</span></div>
-            <div class="stat">Short Passing: <span id="attacking_short_passing">0</span></div>
-            <div class="stat">Volleys: <span id="attacking_volleys">0</span></div>
+            <div class="stat">
+              <span class="stat-value" id="attacking_crossing">0</span> Crossing
+              <span id="attacking_crossing_diff" class="difference"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="attacking_finishing">0</span> Finishing
+              <span id="attacking_finishing_diff" class="difference"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="attacking_heading_accuracy">0</span> Heading
+              <span id="attacking_heading_accuracy_diff" class="difference"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="attacking_short_passing">0</span> Short Passing
+              <span id="attacking_short_passing_diff" class="difference"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="attacking_volleys">0</span> Volleys
+              <span id="attacking_volleys_diff" class="difference"></span>
+            </div>
           </div>
 
           <!-- Skill Stats -->
           <div class="stats-column">
-            <div class="stat">Dribbling: <span id="skill_dribbling">0</span></div>
-            <div class="stat">Curve: <span id="skill_curve">0</span></div>
-            <div class="stat">FK Accuracy: <span id="skill_fk_accuracy">0</span></div>
-            <div class="stat">Long Passing: <span id="skill_long_passing">0</span></div>
-            <div class="stat">Ball Control: <span id="skill_ball_control">0</span></div>
+            <div class="stat">
+              <span class="stat-value" id="skill_dribbling">0</span> Dribbling
+              <span id="skill_dribbling_diff" class="difference"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="skill_curve">0</span> Curve
+              <span id="skill_curve_diff" class="difference"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="skill_fk_accuracy">0</span> Free Kicks
+              <span id="skill_fk_accuracy_diff" class="difference"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="skill_long_passing">0</span> Long Passing
+              <span id="skill_long_passing_diff" class="difference"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="skill_ball_control">0</span> Ball Control
+              <span id="skill_ball_control_diff" class="difference"></span>
+            </div>
           </div>
 
           <!-- Movement Stats -->
           <div class="stats-column">
-            <div class="stat">Acceleration: <span id="movement_acceleration">0</span></div>
-            <div class="stat">Sprint Speed: <span id="movement_sprint_speed">0</span></div>
-            <div class="stat">Agility: <span id="movement_agility">0</span></div>
-            <div class="stat">Reactions: <span id="movement_reactions">0</span></div>
-            <div class="stat">Balance: <span id="movement_balance">0</span></div>
+            <div class="stat">
+              <span class="stat-value" id="movement_acceleration">0</span> Acceleration
+              <span id="movement_acceleration_diff" class="difference"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="movement_sprint_speed">0</span> Sprint Speed
+              <span id="movement_sprint_speed_diff" class="difference"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="movement_agility">0</span> Agility
+              <span id="movement_agility_diff" class="difference"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="movement_reactions">0</span> Reactions
+              <span id="movement_reactions_diff" class="difference"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="movement_balance">0</span> Balance
+              <span id="movement_balance_diff" class="difference"></span>
+            </div>
           </div>
 
           <!-- Power Stats -->
           <div class="stats-column">
-            <div class="stat">Shot Power: <span id="power_shot_power">0</span></div>
-            <div class="stat">Jumping: <span id="power_jumping">0</span></div>
-            <div class="stat">Stamina: <span id="power_stamina">0</span></div>
-            <div class="stat">Strength: <span id="power_strength">0</span></div>
-            <div class="stat">Long Shots: <span id="power_long_shots">0</span></div>
+            <div class="stat">
+              <span class="stat-value" id="power_shot_power">0</span> Shot Power
+              <span id="power_shot_power_diff" class="difference"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="power_jumping">0</span> Jumping
+              <span id="power_jumping_diff" class="difference"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="power_stamina">0</span> Stamina
+              <span id="power_stamina_diff" class="difference"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="power_strength">0</span> Strength
+              <span id="power_strength_diff" class="difference"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="power_long_shots">0</span> Long Shots
+              <span id="power_long_shots_diff" class="difference"></span>
+            </div>
           </div>
 
           <!-- Mentality Stats -->
           <div class="stats-column">
-            <div class="stat">Aggression: <span id="mentality_aggression">0</span></div>
-            <div class="stat">Interceptions: <span id="mentality_interceptions">0</span></div>
-            <div class="stat">Positioning: <span id="mentality_positioning">0</span></div>
-            <div class="stat">Vision: <span id="mentality_vision">0</span></div>
-            <div class="stat">Penalties: <span id="mentality_penalties">0</span></div>
-            <div class="stat">Composure: <span id="mentality_composure">0</span></div>
+            <div class="stat">
+              <span class="stat-value" id="mentality_aggression">0</span> Aggression
+              <span id="mentality_aggression_diff" class="difference"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="mentality_positioning">0</span> Positioning
+              <span id="mentality_positioning_diff" class="difference"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="mentality_vision">0</span> Vision
+              <span id="mentality_vision_diff" class="difference"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="mentality_penalties">0</span> Penalties
+              <span id="mentality_penalties_diff" class="difference"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="mentality_composure">0</span> Composure
+              <span id="mentality_composure_diff" class="difference"></span>
+            </div>
           </div>
 
           <!-- Defending Stats -->
           <div class="stats-column">
-            <div class="stat">Marking Awareness: <span id="defending_marking_awareness">0</span></div>
-            <div class="stat">Standing Tackle: <span id="defending_standing_tackle">0</span></div>
-            <div class="stat">Sliding Tackle: <span id="defending_sliding_tackle">0</span></div>
+            <div class="stat">
+              <span class="stat-value" id="mentality_interceptions">0</span> Interceptions
+              <span id="mentality_interceptions_diff" class="difference"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="defending_marking_awareness">0</span> Marking
+              <span id="defending_marking_awareness_diff" class="difference"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="defending_standing_tackle">0</span> Stand Tackle
+              <span id="defending_standing_tackle_diff" class="difference"></span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="defending_sliding_tackle">0</span> Sliding Tackle
+              <span id="defending_sliding_tackle_diff" class="difference"></span>
+            </div>
           </div>
         </div>
       </div>
+
 
       <!-- Bottom container -->
       <div class="container bottom-container">

@@ -1,23 +1,83 @@
-var data;
-var selectedVersionData;
-var leagueCountries;
-var nationalities;
-var currentSet;
-var geoLayer;
-var table;
-var valueTimeline;
-var wageTimeline;
+var allVersionsData;
+var selectedYearData;
 
-var referencePlayer;
-var comparedPlayer = null;
+var selectedYearLeagueCountriesSet;
+var selectedYearNationalitiesSet;
+var selectedYearDisplayedSet;
+
+var mapGeoLayer;
+var selectedPlayersTable
+
+var playerValueTimeLine;
+var playerWageTimeLine;
+var playerRadarChart;
+
+var referencePlayerId;
+var comparedPlayerId = null;
 
 var selectedCountry;
-var countryHasMultipleLeagues;
+var selectedCountryHasMultipleLeagues;
 var selectedLeague;
-var selectedTeam;
+var selectedClub;
 
-const multipleLeaguesCountries = new Set(["United Kingdom", "Italy", "Germany", "France", "Spain"])
+const MULTIPLE_LEAGUE_COUNTRIES = new Set(["United Kingdom", "Italy", "Germany", "France", "Spain"])
 
+// Attributes to compare
+const PLAYER_ATTRIBUTES = [
+  "attacking_crossing",
+  "attacking_finishing",
+  "attacking_heading_accuracy",
+  "attacking_short_passing",
+  "attacking_volleys",
+  "skill_dribbling",
+  "skill_curve",
+  "skill_fk_accuracy",
+  "skill_long_passing",
+  "skill_ball_control",
+  "movement_acceleration",
+  "movement_sprint_speed",
+  "movement_agility",
+  "movement_reactions",
+  "movement_balance",
+  "power_shot_power",
+  "power_jumping",
+  "power_stamina",
+  "power_strength",
+  "power_long_shots",
+  "mentality_aggression",
+  "mentality_interceptions",
+  "mentality_positioning",
+  "mentality_vision",
+  "mentality_penalties",
+  "mentality_composure",
+  "defending_marking_awareness",
+  "defending_standing_tackle",
+  "defending_sliding_tackle",
+];
+
+const GOALIE_ATTRIBUTES = [
+  "goalkeeping_diving",
+  "goalkeeping_handling",
+  "goalkeeping_kicking",
+  "goalkeeping_positioning",
+  "goalkeeping_reflexes",
+  "goalkeeping_speed",
+]
+
+const COLORS = [
+  "#ffb3ba", // Pastel Pink
+  "#ff7f50", // Coral
+  "#ffcc00", // Bright Yellow
+  "#00ff7f", // Spring Green
+  "#00bfff", // Deep Sky Blue
+  "#8a2be2", // Blue Violet
+  "#ff69b4", // Hot Pink
+  "#98fb98", // Pale Green
+  "#ff6347", // Tomato
+  "#ffa07a", // Light Salmon
+  "#ffff00", // Yellow
+  "#ffd700", // Gold
+];
 
 d3.csv("players_all_preprocessed.csv", (d) => {
   return {
@@ -115,30 +175,30 @@ d3.csv("players_all_preprocessed.csv", (d) => {
   }
 })
   .then(function (csvData) {
-    data = csvData;
-    selectedVersionData = data.filter(row => row.fifa_version === 24)
-    leagueCountries = new Set(selectedVersionData.map(row => row["league_country"]));
-    nationalities = new Set(selectedVersionData.map(row => row["nationality_name"]));
-    currentSet = leagueCountries;
+    allVersionsData = csvData;
+    selectedYearData = allVersionsData.filter(row => row.fifa_version === 24)
+    selectedYearLeagueCountriesSet = new Set(selectedYearData.map(row => row["league_country"]));
+    selectedYearNationalitiesSet = new Set(selectedYearData.map(row => row["nationality_name"]));
+    selectedYearDisplayedSet = selectedYearLeagueCountriesSet;
     displayMap();
-    showOnlySelectedLabels(currentSet)
-    displayTable();
+    showOnlySelectedLabels(selectedYearDisplayedSet)
+    selectedPlayersTable = setupPlayersTable();
   });
 
 document.getElementById("fifa_version_select").addEventListener("change", (event) => {
   const selectedVersion = event.target.value;
 
-  selectedVersionData = data.filter(row => row.fifa_version == selectedVersion)
-  leagueCountries = new Set(selectedVersionData.map(row => row.league_country));
-  nationalities = new Set(selectedVersionData.map(row => row.nationality_name));
+  selectedYearData = allVersionsData.filter(row => row.fifa_version == selectedVersion)
+  selectedYearLeagueCountriesSet = new Set(selectedYearData.map(row => row.league_country));
+  selectedYearNationalitiesSet = new Set(selectedYearData.map(row => row.nationality_name));
 
   const selectedMode = document.querySelector('input[name="mode"]:checked').value;
-  currentSet = selectedMode === "league" ? leagueCountries : nationalities;
+  selectedYearDisplayedSet = selectedMode === "league" ? selectedYearLeagueCountriesSet : selectedYearNationalitiesSet;
 
-  setCountryStylesAndInteractivity(geoLayer);
-  table.setData(selectedVersionData);
-  playerDisplayStats(table.getRows()[0].getData());
-  showOnlySelectedLabels(currentSet)
+  setCountryStylesAndInteractivity(mapGeoLayer);
+  selectedPlayersTable.setData(selectedYearData);
+  playerDisplayStats(selectedPlayersTable.getRows()[0].getData());
+  showOnlySelectedLabels(selectedYearDisplayedSet)
 });
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -149,7 +209,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   backButtonLeagues.addEventListener("click", backToMap);
   backButtonTeams.addEventListener("click", function () {
-    if (countryHasMultipleLeagues) {
+    if (selectedCountryHasMultipleLeagues) {
       backToLeagues();
     } else {
       backToMap();
@@ -161,48 +221,34 @@ function backToMap() {
   document.getElementById("map_div").classList.remove("hide");
   document.getElementById("league_div").classList.remove("show");
   document.getElementById("team_div").classList.remove("show");
-  table.setData(selectedVersionData);
+  selectedPlayersTable.setData(selectedYearData);
 }
 
 function backToLeagues() {
   document.getElementById("team_div").classList.remove("show");
   document.getElementById("league_div").classList.add("show");
-  table.setData(selectByLeagueCountry(selectedCountry));
+  selectedPlayersTable.setData(selectByLeagueCountry(selectedCountry));
 }
 
 
 document.querySelectorAll('input[name="mode"]').forEach((radio) => {
   radio.addEventListener("change", (event) => {
-    currentSet = event.target.value === "league" ? leagueCountries : nationalities;
-    setCountryStylesAndInteractivity(geoLayer);
-    table.setData(selectedVersionData);
-    showOnlySelectedLabels(currentSet)
+    selectedYearDisplayedSet = event.target.value === "league" ? selectedYearLeagueCountriesSet : selectedYearNationalitiesSet;
+    setCountryStylesAndInteractivity(mapGeoLayer);
+    selectedPlayersTable.setData(selectedYearData);
+    showOnlySelectedLabels(selectedYearDisplayedSet)
   });
 });
 
 function getRandomColor() {
-  const colors = [
-    "#ffb3ba", // Pastel Pink
-    "#ff7f50", // Coral
-    "#ffcc00", // Bright Yellow
-    "#00ff7f", // Spring Green
-    "#00bfff", // Deep Sky Blue
-    "#8a2be2", // Blue Violet
-    "#ff69b4", // Hot Pink
-    "#98fb98", // Pale Green
-    "#ff6347", // Tomato
-    "#ffa07a", // Light Salmon
-    "#ffff00", // Yellow
-    "#ffd700", // Gold
-  ];
-  return colors[Math.floor(Math.random() * colors.length)];
+  return COLORS[Math.floor(Math.random() * COLORS.length)];
 }
 
-function setCountryStylesAndInteractivity(geoLayer) {
-  geoLayer.eachLayer((layer) => {
+function setCountryStylesAndInteractivity() {
+  mapGeoLayer.eachLayer((layer) => {
     const countryName = layer.feature.properties.ADMIN;
 
-    if (currentSet.has(countryName)) {
+    if (selectedYearDisplayedSet.has(countryName)) {
       layer.setStyle({
         fillColor: getRandomColor(),
         fillOpacity: 1,
@@ -225,15 +271,19 @@ function setCountryStylesAndInteractivity(geoLayer) {
 
 
 function displayMap() {
+  const southWest = L.latLng(-85, -180); // Bottom-left corner
+  const northEast = L.latLng(85, 180);  // Top-right corner
+  const bounds = L.latLngBounds(southWest, northEast);
+
   const map = L.map("map_div", {
     center: [37, 0],
-    zoom: 2,
+    zoom: 1,
     scrollWheelZoom: true,
     zoomControl: false,
-    minZoom: 2,
+    minZoom: 1,
     attributionControl: false,
   });
-
+  map.setMaxBounds(bounds);
   L.control.zoom({
     position: "bottomleft",
   }).addTo(map);
@@ -241,7 +291,7 @@ function displayMap() {
   fetch("./countries.geojson")
     .then((response) => response.json())
     .then((countryData) => {
-      geoLayer = L.geoJSON(countryData, {
+      mapGeoLayer = L.geoJSON(countryData, {
         onEachFeature: function (feature, layer) {
           const countryName = feature.properties.ADMIN;
           const countryId = countryName.replace(/\s+/g, "-").toLowerCase(); // Generate a unique ID
@@ -249,7 +299,7 @@ function displayMap() {
           layer.on("click", function () {
             if (layer.options.interactive) {
               selectedCountry = countryName;
-              countryHasMultipleLeagues = multipleLeaguesCountries.has(countryName);
+              selectedCountryHasMultipleLeagues = MULTIPLE_LEAGUE_COUNTRIES.has(countryName);
               mapClick(countryName);
             }
           });
@@ -268,9 +318,9 @@ function displayMap() {
         },
       });
 
-      geoLayer.addTo(map);
+      mapGeoLayer.addTo(map);
 
-      setCountryStylesAndInteractivity(geoLayer);
+      setCountryStylesAndInteractivity(mapGeoLayer);
     });
 
   map.on("zoom", function () {
@@ -283,7 +333,7 @@ function displayMap() {
       labelDiv.style.fontSize = `${fontSize}px`;
       labelDiv.style.opacity = labelDiv.style.opacity * opacity;
     });
-    showOnlySelectedLabels(currentSet);
+    showOnlySelectedLabels(selectedYearDisplayedSet);
   });
 }
 
@@ -313,7 +363,7 @@ function mapClick(countryName) {
   const radioValue = document.querySelector('input[name="mode"]:checked').value;
   if (radioValue === "nationality") {
     const filteredData = selectByNation(countryName);
-    table.setData(filteredData);
+    selectedPlayersTable.setData(filteredData);
   } else { // leagues
     document.getElementById("map_div").classList.add("hide");
     let leagues = getUniqueLeaguesByCountry(countryName);
@@ -363,7 +413,7 @@ function showLeagues(countryName, leagues) {
     leagueContainer.appendChild(leagueWrapper);
 
     const filteredData = selectByLeagueCountry(countryName)
-    table.setData(filteredData);
+    selectedPlayersTable.setData(filteredData);
   });
 }
 
@@ -398,23 +448,23 @@ function showTeams(countryName, leagueName) {
     teamBadge.appendChild(teamName);
 
     teamBadge.onclick = function () {
-      selectedTeam = clubName;
+      selectedClub = clubName;
       console.log(`Clicked on team: ${clubName}`);
       const filteredData = selectByClub(countryName, leagueName, clubName);
-      table.setData(filteredData);
+      selectedPlayersTable.setData(filteredData);
     };
 
     teamContainer.appendChild(teamBadge);
 
     const filteredData = selectByLeague(countryName, leagueName);
-    table.setData(filteredData);
+    selectedPlayersTable.setData(filteredData);
   });
 }
 
 
-function displayTable() {
-  table = new Tabulator("#table_div", {
-    data: selectedVersionData,
+function setupPlayersTable() {
+  let table = new Tabulator("#table_div", {
+    data: selectedYearData,
     layout: "fitData",
     columns: [
       {
@@ -422,7 +472,6 @@ function displayTable() {
         field: "name",
         headerSort: true,
         resizable: false,
-        formatter: "plaintext",  // Ensures proper text formatting
         minWidth: 150
       },
       {
@@ -430,8 +479,7 @@ function displayTable() {
         field: "overall",
         headerSort: true,
         resizable: false,
-        sorter: "number",  // Sorting by numbers for better handling of ratings
-        cssClass: "rating-column" // Adding a custom class for CSS styling
+        sorter: "number",
       },
       {
         title: "Age",
@@ -470,7 +518,6 @@ function displayTable() {
       },
     ],
     selectable: false,
-
     initialSort: [
       { column: "overall", dir: "desc" },
     ],
@@ -484,44 +531,99 @@ function displayTable() {
     },
   });
 
-  table.on("tableBuilt", function () {
-    playerDisplayStats(table.getRows()[0].getData());
+  table.on("dataProcessed", function () {
+    playerDisplayStats(selectedPlayersTable.getRows()[0].getData());
   });
 
-
   table.on("rowClick", (e, row) => {
-    console.log(table.getRows())
     let selectedPlayer = row.getData();
     playerDisplayStats(selectedPlayer)
   });
 
-
-  table.on("rowMouseOver", function (e, row) {
-    let inspectedPlayer = row.getData();
-    if (inspectedPlayer.player_id == comparedPlayer) { // inspecting the same player as last time (no change)
-      return;
-    }
-
-    comparedPlayer = inspectedPlayer.player_id;
-    let timeData;
-    removeLine(wageTimeline, 1);
-    console.log(referencePlayer, comparedPlayer)
-    if (referencePlayer != comparedPlayer) {
-      timeData = getPlayerWages(inspectedPlayer.player_id);
-      addLine(wageTimeline, timeData);
-    }
-    removeLine(valueTimeline, 1);
-    if (referencePlayer != comparedPlayer) {
-      timeData = getPlayerValues(inspectedPlayer.player_id);
-      addLine(valueTimeline, timeData);
-    }
+  table.on("rowMouseOver", (e, row) => {
+    let inspectedPlayerData = row.getData();
+    comparePlayerToReference(inspectedPlayerData)
   });
 
   return table;
 }
 
+function comparePlayerToReference(inspectedPlayerData) {
+  if (inspectedPlayerData.player_id == comparedPlayerId) { // inspecting the same player as last time (no change)
+    return;
+  }
+  comparedPlayerId = inspectedPlayerData.player_id;
+  let referencePlayerData = selectedYearData.find(d => d.player_id === referencePlayerId);
+
+  PLAYER_ATTRIBUTES.forEach(attr => {
+    const inspectedValue = inspectedPlayerData[attr];
+    const referenceValue = referencePlayerData[attr];
+
+    const difference = inspectedValue - referenceValue;
+
+    // Update the *_diff span
+    const diffElement = document.getElementById(`${attr}_diff`);
+    if (diffElement) {
+      if (comparedPlayerId == referencePlayerId) {
+        diffElement.classList.remove('show');
+      } else {
+        diffElement.classList.add('show');
+      }
+      diffElement.textContent = difference > 0 ? `+${difference}` : difference;
+
+      if (difference > 0) {
+        diffElement.style.backgroundColor = "green"; // Positive difference
+      } else if (difference < 0) {
+        diffElement.style.backgroundColor = "red"; // Negative difference
+      } else {
+        diffElement.style.backgroundColor = "lightgrey"; // No difference
+      }
+    }
+  });
+
+  let dataPoints;
+
+  if (inspectedPlayerData.player_positions === "GK") {
+    dataPoints = [
+      +inspectedPlayerData.goalkeeping_diving,
+      +inspectedPlayerData.goalkeeping_handling,
+      +inspectedPlayerData.goalkeeping_kicking,
+      +inspectedPlayerData.goalkeeping_positioning,
+      +inspectedPlayerData.goalkeeping_reflexes,
+      +inspectedPlayerData.goalkeeping_speed,
+    ];
+  } else {
+    dataPoints = [
+      +inspectedPlayerData.pace,
+      +inspectedPlayerData.shooting,
+      +inspectedPlayerData.passing,
+      +inspectedPlayerData.dribbling,
+      +inspectedPlayerData.defending,
+      +inspectedPlayerData.physic,
+    ];
+  }
+
+  removeDatasetAtIndex(playerRadarChart, 1);
+  if (referencePlayerId != comparedPlayerId) {
+    appendDataset(playerRadarChart, dataPoints)
+  }
+
+  let timeData;
+  removeLine(playerWageTimeLine, 1);
+  console.log(referencePlayerId, comparedPlayerId)
+  if (referencePlayerId != comparedPlayerId) {
+    timeData = getPlayerWages(inspectedPlayerData.player_id);
+    addLine(playerWageTimeLine, timeData);
+  }
+  removeLine(playerValueTimeLine, 1);
+  if (referencePlayerId != comparedPlayerId) {
+    timeData = getPlayerValues(inspectedPlayerData.player_id);
+    addLine(playerValueTimeLine, timeData);
+  }
+}
+
 function playerDisplayStats(selectedPlayer) {
-  referencePlayer = selectedPlayer.player_id;
+  referencePlayerId = selectedPlayer.player_id;
   document.getElementById("player_name").textContent = selectedPlayer.name;
   document.getElementById("player_position").textContent = `Position: ${selectedPlayer.player_positions}`;
   document.getElementById("player_age").textContent = `Age: ${selectedPlayer.age}`;
@@ -572,15 +674,38 @@ function playerDisplayStats(selectedPlayer) {
   let ctx = document.createElement("canvas");
   let container = document.getElementById("starchart");
   container.innerHTML = ""; // Clear previous chart
+  playerRadarChart = createRadarChart(ctx, labels, dataPoints);
   container.appendChild(ctx);
-  new Chart(ctx, {
+
+
+  updatePlayerStats(selectedPlayer);
+
+  ctx = document.createElement("canvas");
+  container = document.getElementById("wage_timeline");
+  container.innerHTML = ""; // Clear previous chart
+  container.appendChild(ctx);
+  let timeData = getPlayerWages(selectedPlayer.player_id);
+  playerWageTimeLine = createTimelineChart(ctx, timeData, "Player's Wage")
+
+  ctx = document.createElement("canvas");
+  container = document.getElementById("value_timeline");
+  container.innerHTML = ""; // Clear previous chart
+  container.appendChild(ctx);
+  timeData = getPlayerValues(selectedPlayer.player_id);
+  playerValueTimeLine = createTimelineChart(ctx, timeData, "Player's Value")
+
+}
+
+
+function createRadarChart(ctx, labels, dataPoints) {
+  return new Chart(ctx, {
     type: "radar",
     data: {
       labels: labels,
       datasets: [
         {
           data: dataPoints,
-          backgroundColor: "lightgrey", // Transparent background
+          backgroundColor: "rgba(42, 157, 143, 0.2)", // Transparent background
           borderColor: "black", // Chart line color (if any)
           pointBackgroundColor: function (context) {
             const value = context.raw; // Get the value of the point
@@ -591,7 +716,7 @@ function playerDisplayStats(selectedPlayer) {
             return "darkgreen"; // Dark Green for 80-100
           },
           pointBorderColor: "#fff", // White border for the points
-          pointRadius: 6, // Bigger dots
+          pointRadius: 4, // Bigger dots
           borderWidth: 2, // Thinner connecting line
         },
       ],
@@ -616,7 +741,7 @@ function playerDisplayStats(selectedPlayer) {
           },
           pointLabels: {
             font: {
-              size: 12,
+              size: 10,
               weight: "bold", // Make labels bold
             },
             color: function (context) {
@@ -635,24 +760,27 @@ function playerDisplayStats(selectedPlayer) {
       },
     },
   });
-
-  updatePlayerStats(selectedPlayer);
-
-  ctx = document.createElement("canvas");
-  container = document.getElementById("wage_timeline");
-  container.innerHTML = ""; // Clear previous chart
-  container.appendChild(ctx);
-  let timeData = getPlayerWages(selectedPlayer.player_id);
-  wageTimeline = createTimelineChart(ctx, timeData, "Player's Wage")
-
-  ctx = document.createElement("canvas");
-  container = document.getElementById("value_timeline");
-  container.innerHTML = ""; // Clear previous chart
-  container.appendChild(ctx);
-  timeData = getPlayerValues(selectedPlayer.player_id);
-  valueTimeline = createTimelineChart(ctx, timeData, "Player's Value")
 }
 
+function appendDataset(radarChart, newData) {
+  radarChart.data.datasets.push({
+    data: newData,
+    backgroundColor: "rgba(255, 0, 0, 0.3)", // Red color with 0.3 opacity
+    borderColor: "black", // Chart line color
+    pointBackgroundColor: "red", // Red points for new data
+    pointBorderColor: "#fff", // White border for the points
+    pointRadius: 4, // Bigger dots
+    borderWidth: 2, // Thinner connecting line
+  });
+  radarChart.update();
+}
+
+function removeDatasetAtIndex(radarChart, index = 1) {
+  if (radarChart.data.datasets.length > index) {
+    radarChart.data.datasets.splice(index, 1); // Remove dataset at index 1
+    radarChart.update(); // Update chart to reflect changes
+  }
+}
 
 function createTimelineChart(ctx, data, label) {
   const maxDataValue = Math.max(...data);
@@ -749,7 +877,7 @@ function getClubLogoURL(club_id, size) {
 
 
 function getLeagueClubIds(country, league) {
-  const filteredClubs = selectedVersionData.filter(
+  const filteredClubs = selectedYearData.filter(
     (row) => row.league_name === league && row.league_country === country
   );
   const uniqueClubIds = new Set(filteredClubs.map((row) => row.club_team_id));
@@ -757,33 +885,33 @@ function getLeagueClubIds(country, league) {
 }
 
 function selectByNation(nationality) {
-  return selectedVersionData.filter((row) =>
+  return selectedYearData.filter((row) =>
     row.nationality_name === nationality);
 }
 
 function selectByLeagueCountry(league_country) {
-  return selectedVersionData.filter((row) =>
+  return selectedYearData.filter((row) =>
     row.league_country === league_country);
 }
 
 function selectByLeague(league_country, league_name) {
-  return selectedVersionData.filter((row) =>
+  return selectedYearData.filter((row) =>
     row.league_name === league_name && row.league_country === league_country);
 }
 
 function selectByClub(league_country, league_name, club_name) {
-  return selectedVersionData.filter((row) =>
+  return selectedYearData.filter((row) =>
     row.club_name === club_name && row.league_name === league_name && row.league_country === league_country);
 }
 
 function getUniqueLeaguesByCountry(league_country) {
-  const filteredData = selectedVersionData.filter((row) =>
+  const filteredData = selectedYearData.filter((row) =>
     row.league_country === league_country);
   return new Set(filteredData.map(row => row.league_name));
 }
 
 function getClubNameById(club_team_id) {
-  const club = selectedVersionData.find((row) => row.club_team_id === club_team_id);
+  const club = selectedYearData.find((row) => row.club_team_id === club_team_id);
   return club ? club.club_name : null;
 }
 
@@ -823,7 +951,7 @@ function updatePlayerStats(playerData) {
 
 function getPlayerValues(player_id) {
   let value_eur_per_year = [null, null, null, null, null];
-  const playerData = data.filter(d => d.player_id === player_id);
+  const playerData = allVersionsData.filter(d => d.player_id === player_id);
   playerData.forEach((record) => {
     const yearIndex = record.fifa_version - 20;
     value_eur_per_year[yearIndex] = record.value_eur;
@@ -833,7 +961,7 @@ function getPlayerValues(player_id) {
 
 function getPlayerWages(player_id) {
   let wage_eur_per_year = [null, null, null, null, null];
-  const playerData = data.filter(d => d.player_id === player_id);
+  const playerData = allVersionsData.filter(d => d.player_id === player_id);
   playerData.forEach((record) => {
     const yearIndex = record.fifa_version - 20;
     wage_eur_per_year[yearIndex] = record.wage_eur;
@@ -864,16 +992,16 @@ function updateDropdown(filteredTerms) {
 // Event listener for search input
 searchInput.addEventListener("input", function () {
   const searchTerm = this.value.toLowerCase();
-  const filteredTerms = [...currentSet].filter(term => term.toLowerCase().includes(searchTerm));
+  const filteredTerms = [...selectedYearDisplayedSet].filter(term => term.toLowerCase().includes(searchTerm));
   updateDropdown(filteredTerms); // Update the dropdown with filtered terms
 });
 
 // Event listener for search button (click action)
 searchButton.addEventListener("click", function () {
   const selectedTerm = searchInput.value;
-  if (currentSet.has(selectedTerm)) {
+  if (selectedYearDisplayedSet.has(selectedTerm)) {
     selectedCountry = selectedTerm;
-    countryHasMultipleLeagues = getUniqueLeaguesByCountry(selectedTerm).size > 1;
+    selectedCountryHasMultipleLeagues = getUniqueLeaguesByCountry(selectedTerm).size > 1;
     mapClick(selectedTerm);
   }
 });

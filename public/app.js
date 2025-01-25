@@ -434,7 +434,15 @@ function showTeams(countryName, leagueName) {
     teamBadge.className = 'badge';
     let logo;
     logo = getClubLogoURL(team, 120)
-    teamBadge.style.backgroundImage = `url(${logo})`;
+    let i = new Image();
+    i.onload = () => {
+      console.log("Was here")
+      teamBadge.style.backgroundImage = `url(${logo})`;
+    };
+    i.onerror = () => {
+      teamBadge.style.backgroundImage = `url(./undeffined-logo.png)`;
+    };
+    i.src = logo;
     teamBadge.style.backgroundSize = 'contain';
     teamBadge.style.backgroundRepeat = 'no-repeat';
     teamBadge.style.width = '100px';
@@ -521,28 +529,56 @@ function setupPlayersTable() {
     initialSort: [
       { column: "overall", dir: "desc" },
     ],
-
-    rowFormatter: function (row) {
-      if (row.getPosition() % 2 === 0) {
-        row.getElement().style.backgroundColor = "#f0f4f8";
-      } else {
-        row.getElement().style.backgroundColor = "#ffffff";
-      }
-    },
   });
 
+  let selectedRow = null; // Variable to store the selected row
+
+  function rowFormatter(row) {
+    if (row.getPosition() % 2 === 0) {
+      row.getElement().style.backgroundColor = "#f0f4f8"; // Even rows have light gray
+    } else {
+      row.getElement().style.backgroundColor = "#ffffff"; // Odd rows are white
+    }
+
+    // Ensure the selected row retains its custom color
+    if (selectedRow && selectedRow.getElement() === row.getElement()) {
+      row.getElement().style.backgroundColor = 'rgba(42, 157, 143, 0.4)'; // Last clicked row color
+    }
+  }
+
   table.on("dataProcessed", function () {
-    playerDisplayStats(selectedPlayersTable.getRows()[0].getData());
+    let firstRow = table.getRows()[0];
+    selectedRow = firstRow; // Store the first row as the selected row
+    // Select the first row and apply the selected color
+    table.getRows().forEach(r => {
+      rowFormatter(r); // Use the rowFormatter to restore the original colors
+    });
+    playerDisplayStats(firstRow.getData()); // Display the stats for the first player
+
   });
 
   table.on("rowClick", (e, row) => {
     let selectedPlayer = row.getData();
-    playerDisplayStats(selectedPlayer)
+    selectedRow = row; // Store the clicked row for future reference
+    // Restore the row color for all rows before applying the new color to the selected row
+    table.getRows().forEach(r => {
+      rowFormatter(r); // This will use the default row colors from rowFormatter
+    });
+
+
+    playerDisplayStats(selectedPlayer);
   });
 
   table.on("rowMouseOver", (e, row) => {
+    table.getRows().forEach(r => {
+      rowFormatter(r); // This will use the default row colors from rowFormatter
+    });
+    if (row.getElement() !== selectedRow?.getElement()) {
+      row.getElement().style.backgroundColor = 'rgba(236, 14, 14, 0.4)'; // Light red for hovered row
+    }
+
     let inspectedPlayerData = row.getData();
-    comparePlayerToReference(inspectedPlayerData)
+    comparePlayerToReference(inspectedPlayerData);
   });
 
   return table;
@@ -573,17 +609,20 @@ function comparePlayerToReference(inspectedPlayerData) {
 
       if (difference > 0) {
         diffElement.style.backgroundColor = "green"; // Positive difference
+        diffElement.style.color = "white";
       } else if (difference < 0) {
-        diffElement.style.backgroundColor = "red"; // Negative difference
+        diffElement.style.backgroundColor = "#de3700"; // Negative difference
+        diffElement.style.color = "white";
       } else {
         diffElement.style.backgroundColor = "lightgrey"; // No difference
+        diffElement.style.color = "black";
       }
     }
   });
 
   let dataPoints;
 
-  if (inspectedPlayerData.player_positions === "GK") {
+  if (referencePlayerData.player_positions === "GK") {
     dataPoints = [
       +inspectedPlayerData.goalkeeping_diving,
       +inspectedPlayerData.goalkeeping_handling,
@@ -637,7 +676,15 @@ function playerDisplayStats(selectedPlayer) {
 
   const photoURL = getPlayersPhotoURL(selectedPlayer.player_id, selectedPlayer.fifa_version, 240);
   const playerPhotoDiv = document.getElementById("player_photo");
-  playerPhotoDiv.style.backgroundImage = `url('${photoURL}')`;
+  let i = new Image();
+  i.onload = () => {
+    console.log("Was here")
+    playerPhotoDiv.style.backgroundImage = `url('${photoURL}')`;
+  };
+  i.onerror = () => {
+    playerPhotoDiv.style.backgroundImage = `url('https://cdn.sofifa.net/player_0.svg')`;
+  };
+  i.src = photoURL;
 
   let labels, dataPoints;
 
@@ -674,7 +721,7 @@ function playerDisplayStats(selectedPlayer) {
   let ctx = document.createElement("canvas");
   let container = document.getElementById("starchart");
   container.innerHTML = ""; // Clear previous chart
-  playerRadarChart = createRadarChart(ctx, labels, dataPoints);
+  playerRadarChart = createRadarChart(ctx, labels, dataPoints, selectedPlayer.name);
   container.appendChild(ctx);
 
 
@@ -694,10 +741,12 @@ function playerDisplayStats(selectedPlayer) {
   timeData = getPlayerValues(selectedPlayer.player_id);
   playerValueTimeLine = createTimelineChart(ctx, timeData, "Player's Value")
 
+  drawHeatmap(selectedPlayer)
+
 }
 
 
-function createRadarChart(ctx, labels, dataPoints) {
+function createRadarChart(ctx, labels, dataPoints, playerName) {
   return new Chart(ctx, {
     type: "radar",
     data: {
@@ -705,15 +754,11 @@ function createRadarChart(ctx, labels, dataPoints) {
       datasets: [
         {
           data: dataPoints,
-          backgroundColor: "rgba(42, 157, 143, 0.2)", // Transparent background
-          borderColor: "black", // Chart line color (if any)
+          backgroundColor: "rgba(0, 0, 0, 0)", // Transparent background
+          borderColor: "rgb(42, 157, 143)", // Chart line color (if any)
           pointBackgroundColor: function (context) {
             const value = context.raw; // Get the value of the point
-            if (value <= 20) return "red"; // Red for 0-20
-            if (value <= 40) return "orange"; // Orange for 20-40
-            if (value <= 60) return "yellow"; // Yellow for 40-60
-            if (value <= 80) return "lightgreen"; // Light Green for 60-80
-            return "darkgreen"; // Dark Green for 80-100
+            return getColor(value);
           },
           pointBorderColor: "#fff", // White border for the points
           pointRadius: 4, // Bigger dots
@@ -744,16 +789,9 @@ function createRadarChart(ctx, labels, dataPoints) {
               size: 10,
               weight: "bold", // Make labels bold
             },
-            color: function (context) {
-              const value = dataPoints[context.index]; // Get the value of the point
-              if (value <= 20) return "red"; // Red for 0-20
-              if (value <= 40) return "orange"; // Orange for 20-40
-              if (value <= 60) return "yellow"; // Yellow for 40-60
-              if (value <= 80) return "lightgreen"; // Light Green for 60-80
-              return "darkgreen"; // Dark Green for 80-100
-            },
-            callback: function (label, index) {
-              return `${label}`;
+            color: "black",
+            callback: function (playerName, index) {
+              return `${playerName}`;
             },
           },
         },
@@ -762,22 +800,30 @@ function createRadarChart(ctx, labels, dataPoints) {
   });
 }
 
-function appendDataset(radarChart, newData) {
+function appendDataset(radarChart, newData, playerName) {
   radarChart.data.datasets.push({
     data: newData,
-    backgroundColor: "rgba(255, 0, 0, 0.3)", // Red color with 0.3 opacity
-    borderColor: "black", // Chart line color
-    pointBackgroundColor: "red", // Red points for new data
-    pointBorderColor: "#fff", // White border for the points
+    backgroundColor: "rgba(0, 0, 0, 0)",/* Fully transparent */
+    // Red color with 0.3 opacity
+    borderColor: "rgb(236, 14, 14)", // Chart line color
+    pointBackgroundColor: function (context) {
+      const value = context.raw; // Get the value of the point
+      return getColor(value);
+    },
+    pointBorderColor: "#fff",
     pointRadius: 4, // Bigger dots
     borderWidth: 2, // Thinner connecting line
   });
+  radarChart.data.datasets[0].borderColor = "rgba(42, 157, 143, 0.5)"
+  radarChart.data.datasets[0].borderWidth = 1,
   radarChart.update();
 }
 
 function removeDatasetAtIndex(radarChart, index = 1) {
   if (radarChart.data.datasets.length > index) {
     radarChart.data.datasets.splice(index, 1); // Remove dataset at index 1
+    radarChart.data.datasets[0].borderColor = "rgba(42, 157, 143, 1)"
+    radarChart.data.datasets[0].borderWidth = 2,
     radarChart.update(); // Update chart to reflect changes
   }
 }
@@ -829,7 +875,6 @@ function createTimelineChart(ctx, data, label) {
       },
     }
   });
-  //updateYScale(chart)
   return chart;
 }
 
@@ -921,11 +966,36 @@ function getPlayersPhotoURL(player_id, fifa_version, size) {
 }
 
 function getColor(value) {
-  if (value <= 20) return "red"; // Red for 0-20
-  if (value <= 40) return "orange"; // Orange for 20-40
-  if (value <= 60) return "yellow"; // Yellow for 40-60
-  if (value <= 80) return "lightgreen"; // Light Green for 60-80
-  return "darkgreen"; // Dark Green for 80-100
+  const colors = [
+    "darkred", "#de3700", "darkorange", "orange", "#ffe600", "#e1ff00", "#92e000", "#2aa10f", "darkgreen", "#295e11"
+  ];
+  if (value < 25) return colors[0];
+  if (value < 50) return colors[1];
+  if (value < 57) return colors[2];
+  if (value < 65) return colors[3];
+  if (value < 70) return colors[4];
+  if (value < 75) return colors[5];
+  if (value < 80) return colors[6];
+  if (value < 87) return colors[7];
+  if (value < 93) return colors[8];
+  return colors[9]
+}
+
+function getFontColor(value) {
+  const colors = [
+    "darkred", "#de3700", "darkorange", "orange", "#ffe600", "#e1ff00", "#92e000", "#2aa10f", "darkgreen", "#295e11"
+  ];
+  if (value == 0) return "black";
+  if (value < 25) return "white";
+  if (value < 50) return "white";
+  if (value < 57) return "black";
+  if (value < 65) return "black";
+  if (value < 70) return "black";
+  if (value < 75) return "black";
+  if (value < 80) return "white";
+  if (value < 87) return "white";
+  if (value < 93) return "white";
+  return "white"
 }
 
 function updatePlayerStats(playerData) {
@@ -945,6 +1015,7 @@ function updatePlayerStats(playerData) {
 
     // Update the value and apply background color
     element.innerText = value;
+    element.style.color = getFontColor(value)
     element.style.backgroundColor = color;
   });
 }
@@ -1005,3 +1076,78 @@ searchButton.addEventListener("click", function () {
     mapClick(selectedTerm);
   }
 });
+
+function drawHeatmap(data) {
+  const positions = [
+    ["ls", "st", "rs"],
+    ["lw", "lf", "cf", "rf", "rw"],
+    ["lam", "cam", "ram"],
+    ["lm", "lcm", "cm", "rcm", "rm"],
+    ["lwb", "ldm", "cdm", "rdm", "rwb"],
+    ["lb", "lcb", "cb", "rcb", "rb"],
+    ["gk"]
+  ];
+
+  // Select the heatmap div and get its dimensions
+  const heatmapDiv = d3.select("#heatmap");
+  heatmapDiv.selectAll("svg").remove();
+  const width = heatmapDiv.node().clientWidth;
+  const height = heatmapDiv.node().clientHeight;
+
+  const svg = heatmapDiv.append("svg")
+    .attr("width", width)
+    .attr("height", height);
+
+  const rowHeight = height / positions.length; // Divide the div into 7 rows
+
+  // Create a tooltip element
+  const tooltip = d3.select("body").append("div")
+    .attr("class", "tooltip")
+    .style("position", "absolute")
+    .style("visibility", "hidden")
+    .style("background-color", "rgba(0, 0, 0, 0.7)")
+    .style("color", "#fff")
+    .style("border-radius", "5px")
+    .style("padding", "5px")
+    .style("font-size", "12px")
+    .style("z-index", "9999");
+
+  positions.forEach((level, rowIndex) => {
+    const levelWidth = width / level.length; // Divide row into columns based on positions
+
+    level.forEach((position, colIndex) => {
+      const value = data[position]; // Get the value for this position from the datapoint
+
+      const rect = svg.append("rect")
+        .attr("x", colIndex * levelWidth)
+        .attr("y", rowIndex * rowHeight)
+        .attr("width", levelWidth)
+        .attr("height", rowHeight)
+        .attr("fill", getColor(value));
+
+      // Optional: Add labels to each rectangle
+      svg.append("text")
+        .attr("x", (colIndex + 0.5) * levelWidth)
+        .attr("y", (rowIndex + 0.5) * rowHeight)
+        .attr("text-anchor", "middle")
+        .attr("dominant-baseline", "middle")
+        .attr("font-size", "12px")
+        .attr("fill", getFontColor(value))
+        .text(position.toUpperCase())
+        .style("pointer-events", "none");
+
+      // Hover event to show tooltip
+      rect.on("mouseover", function (event) {
+        tooltip.style("visibility", "visible")
+          .text(`${position.toUpperCase()}: ${value}`)
+          .style("top", (event.pageY + 10) + "px")  // Add slight offset for better positioning
+          .style("left", (event.pageX + 10) + "px");
+      });
+
+      // Mouse out event to hide tooltip
+      rect.on("mouseout", function () {
+        tooltip.style("visibility", "hidden");
+      });
+    });
+  });
+}

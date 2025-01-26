@@ -1,25 +1,48 @@
+/* Data */
 var allVersionsData;
 var selectedYearData;
 
-var selectedYearLeagueCountriesSet;
-var selectedYearNationalitiesSet;
-var selectedYearDisplayedSet;
-
-var mapGeoLayer;
-var selectedPlayersTable
-
-var playerValueTimeLine;
-var playerWageTimeLine;
-var playerRadarChart;
-
+/* Selection items */
+var selectedYearLeagueCountries;
+var selectedYearNationalities;
+var selectedYearDisplayed;
 var referencePlayerId;
 var comparedPlayerId = null;
-
 var selectedCountry;
 var selectedCountryHasMultipleLeagues;
 var selectedLeague;
 var selectedClub;
 
+/* Map */
+var map;
+var mapGeoLayer;
+
+const MAP_COLORS = [
+  "#ffb3ba", // Pastel Pink
+  "#ff7f50", // Coral
+  "#ffcc00", // Bright Yellow
+  "#00ff7f", // Spring Green
+  "#00bfff", // Deep Sky Blue
+  "#8a2be2", // Blue Violet
+  "#ff69b4", // Hot Pink
+  "#98fb98", // Pale Green
+  "#ff6347", // Tomato
+  "#ffa07a", // Light Salmon
+  "#ffff00", // Yellow
+  "#ffd700", // Gold
+];
+
+/* Table */
+var selectedPlayersTable;
+var firstLoad = true;
+
+/* Plots */
+var playerValueTimeLine;
+var playerWageTimeLine;
+var playerRadarChart;
+
+
+const DEFAULT_FIFA_VERSION = 24;
 const MULTIPLE_LEAGUE_COUNTRIES = new Set(["United Kingdom", "Italy", "Germany", "France", "Spain"])
 
 // Attributes to compare
@@ -64,22 +87,34 @@ const GOALIE_ATTRIBUTES = [
   "goalkeeping_speed",
 ]
 
-const COLORS = [
-  "#ffb3ba", // Pastel Pink
-  "#ff7f50", // Coral
-  "#ffcc00", // Bright Yellow
-  "#00ff7f", // Spring Green
-  "#00bfff", // Deep Sky Blue
-  "#8a2be2", // Blue Violet
-  "#ff69b4", // Hot Pink
-  "#98fb98", // Pale Green
-  "#ff6347", // Tomato
-  "#ffa07a", // Light Salmon
-  "#ffff00", // Yellow
-  "#ffd700", // Gold
-];
+/* HTML components getters */
+const backButtonLeagues = document.getElementById("back_button_leagues");
+const backButtonTeams = document.getElementById("back_button_teams");
+const fifaVersionSelectMenu = document.getElementById("fifa_version_select");
+const searchInput = document.getElementById("search_input");
+const searchDropdownList = document.getElementById("dropdown_list");
+const searchButton = document.getElementById("search_button");
+const mapDiv = document.getElementById("map_div");
+const leagueDiv = document.getElementById("league_div");
+const teamDiv = document.getElementById("team_div");
 
-d3.csv("players_all_preprocessed.csv", (d) => {
+
+document.addEventListener("DOMContentLoaded", function () {
+  fifaVersionSelectMenu.value = DEFAULT_FIFA_VERSION;
+  document.querySelector('input[name="mode"][value="league"]').checked = true;
+  searchInput.value = "";
+
+  backButtonLeagues.addEventListener("click", backToMap);
+  backButtonTeams.addEventListener("click", () => {
+    if (selectedCountryHasMultipleLeagues) {
+      backToLeagues();
+    } else {
+      backToMap();
+    }
+  });
+});
+
+d3.csv("./data/players_all_preprocessed.csv", (d) => {
   return {
     player_id: +d.player_id,
     fifa_version: +d.fifa_version,
@@ -97,13 +132,10 @@ d3.csv("players_all_preprocessed.csv", (d) => {
     league_id: +d.league_id,
     league_name: d.league_name,
     league_country: d.league_country,
-    league_level: +d.league_level,
     nationality_id: +d.nationality_id,
     nationality_name: d.nationality_name,
     preferred_foot: d.preferred_foot,
     weak_foot: +d.weak_foot,
-    skill_moves: +d.skill_moves,
-    release_clause_eur: +d.release_clause_eur,
     pace: +d.pace,
     shooting: +d.shooting,
     passing: +d.passing,
@@ -174,83 +206,75 @@ d3.csv("players_all_preprocessed.csv", (d) => {
     gk: +d.gk,
   }
 })
-  .then(function (csvData) {
+  .then((csvData) => {
     allVersionsData = csvData;
-    selectedYearData = allVersionsData.filter(row => row.fifa_version === 24)
-    selectedYearLeagueCountriesSet = new Set(selectedYearData.map(row => row["league_country"]));
-    selectedYearNationalitiesSet = new Set(selectedYearData.map(row => row["nationality_name"]));
-    selectedYearDisplayedSet = selectedYearLeagueCountriesSet;
+    selectedYearData = allVersionsData.filter(row => row.fifa_version === DEFAULT_FIFA_VERSION)
+    selectedYearLeagueCountries = new Set(selectedYearData.map(row => row.league_country));
+    selectedYearNationalities = new Set(selectedYearData.map(row => row.nationality_name));
+    selectedYearDisplayed = selectedYearLeagueCountries;  // default mode is League
     displayMap();
-    showOnlySelectedLabels(selectedYearDisplayedSet)
-    selectedPlayersTable = setupPlayersTable();
+    setupPlayersTable();
   });
 
-document.getElementById("fifa_version_select").addEventListener("change", (event) => {
+fifaVersionSelectMenu.addEventListener("change", (event) => {
+  firstLoad = true;
   const selectedVersion = event.target.value;
 
   selectedYearData = allVersionsData.filter(row => row.fifa_version == selectedVersion)
-  selectedYearLeagueCountriesSet = new Set(selectedYearData.map(row => row.league_country));
-  selectedYearNationalitiesSet = new Set(selectedYearData.map(row => row.nationality_name));
+  selectedYearLeagueCountries = new Set(selectedYearData.map(row => row.league_country));
+  selectedYearNationalities = new Set(selectedYearData.map(row => row.nationality_name));
 
   const selectedMode = document.querySelector('input[name="mode"]:checked').value;
-  selectedYearDisplayedSet = selectedMode === "league" ? selectedYearLeagueCountriesSet : selectedYearNationalitiesSet;
+  selectedYearDisplayed = selectedMode === "league" ? selectedYearLeagueCountries : selectedYearNationalities;
 
   setCountryStylesAndInteractivity(mapGeoLayer);
   selectedPlayersTable.setData(selectedYearData);
-  playerDisplayStats(selectedPlayersTable.getRows()[0].getData());
-  showOnlySelectedLabels(selectedYearDisplayedSet)
-});
-
-document.addEventListener("DOMContentLoaded", function () {
-  const backButtonLeagues = document.getElementById("back_button_leagues");
-  const backButtonTeams = document.getElementById("back_button_teams");
-  document.getElementById("fifa_version_select").value = "24";
-  document.querySelector('input[name="mode"][value="league"]').checked = true;
-
-  backButtonLeagues.addEventListener("click", backToMap);
-  backButtonTeams.addEventListener("click", function () {
-    if (selectedCountryHasMultipleLeagues) {
-      backToLeagues();
-    } else {
-      backToMap();
-    }
-  });
+  playerDisplayStats(selectedPlayersTable.getRows()[0].getData()); // Display the first player when version changed
+  showSelectedMapLabels(selectedYearDisplayed)
+  hideAttributeComparizons();
 });
 
 function backToMap() {
-  document.getElementById("map_div").classList.remove("hide");
-  document.getElementById("league_div").classList.remove("show");
-  document.getElementById("team_div").classList.remove("show");
+  mapDiv.classList.remove("hide");
+  teamDiv.classList.remove("show");
+  leagueDiv.classList.remove("show");
   selectedPlayersTable.setData(selectedYearData);
 }
 
 function backToLeagues() {
-  document.getElementById("team_div").classList.remove("show");
-  document.getElementById("league_div").classList.add("show");
-  selectedPlayersTable.setData(selectByLeagueCountry(selectedCountry));
+  teamDiv.classList.remove("show");
+  leagueDiv.classList.add("show");
+  selectedPlayersTable.setData(selectPlayersByCountry(selectedCountry));
 }
-
 
 document.querySelectorAll('input[name="mode"]').forEach((radio) => {
   radio.addEventListener("change", (event) => {
-    selectedYearDisplayedSet = event.target.value === "league" ? selectedYearLeagueCountriesSet : selectedYearNationalitiesSet;
+    selectedYearDisplayed = event.target.value === "league" ? selectedYearLeagueCountries : selectedYearNationalities;
     setCountryStylesAndInteractivity(mapGeoLayer);
     selectedPlayersTable.setData(selectedYearData);
-    showOnlySelectedLabels(selectedYearDisplayedSet)
+    showSelectedMapLabels(selectedYearDisplayed)
+    hideAttributeComparizons();
   });
 });
 
-function getRandomColor() {
-  return COLORS[Math.floor(Math.random() * COLORS.length)];
+function hideAttributeComparizons() {
+  PLAYER_ATTRIBUTES.forEach(attr => {
+    const diffElement = document.getElementById(`${attr}_diff`);
+    diffElement.classList.remove('show');
+  });
+}
+
+function getRandomCountryColor() {
+  return MAP_COLORS[Math.floor(Math.random() * MAP_COLORS.length)];
 }
 
 function setCountryStylesAndInteractivity() {
   mapGeoLayer.eachLayer((layer) => {
     const countryName = layer.feature.properties.ADMIN;
 
-    if (selectedYearDisplayedSet.has(countryName)) {
+    if (selectedYearDisplayed.has(countryName)) {
       layer.setStyle({
-        fillColor: getRandomColor(),
+        fillColor: getRandomCountryColor(),
         fillOpacity: 1,
         color: "#333",
         weight: 2,
@@ -269,13 +293,24 @@ function setCountryStylesAndInteractivity() {
   });
 }
 
+searchInput.addEventListener("blur", () => {
+  searchDropdownList.style.display = "none";
+});
+
+// Hide dropdown if clicking outside of the search input or dropdown
+document.addEventListener("click", function (event) {
+  var searchContainer = document.querySelector(".search-container");
+  if (!searchContainer.contains(event.target)) {
+    searchDropdownList.style.display = "none";
+  }
+});
 
 function displayMap() {
-  const southWest = L.latLng(-85, -180); // Bottom-left corner
+  const southWest = L.latLng(-60, -180); // Bottom-left corner
   const northEast = L.latLng(85, 180);  // Top-right corner
   const bounds = L.latLngBounds(southWest, northEast);
 
-  const map = L.map("map_div", {
+  map = L.map("map_div", {
     center: [37, 0],
     zoom: 1,
     scrollWheelZoom: true,
@@ -283,12 +318,14 @@ function displayMap() {
     minZoom: 1,
     attributionControl: false,
   });
+
   map.setMaxBounds(bounds);
+
   L.control.zoom({
     position: "bottomleft",
   }).addTo(map);
 
-  fetch("./countries.geojson")
+  fetch("./data/countries.geojson")
     .then((response) => response.json())
     .then((countryData) => {
       mapGeoLayer = L.geoJSON(countryData, {
@@ -296,7 +333,7 @@ function displayMap() {
           const countryName = feature.properties.ADMIN;
           const countryId = countryName.replace(/\s+/g, "-").toLowerCase(); // Generate a unique ID
 
-          layer.on("click", function () {
+          layer.on("click", () => {
             if (layer.options.interactive) {
               selectedCountry = countryName;
               selectedCountryHasMultipleLeagues = MULTIPLE_LEAGUE_COUNTRIES.has(countryName);
@@ -319,37 +356,46 @@ function displayMap() {
       });
 
       mapGeoLayer.addTo(map);
-
       setCountryStylesAndInteractivity(mapGeoLayer);
     });
 
   map.on("zoom", function () {
-    const zoom = map.getZoom();
-    const fontSize = Math.max(8, Math.min(zoom * 2, 24));
-    const opacity = zoom > 2 ? 1 : 0;
+    showSelectedMapLabels(selectedYearDisplayed);
+  });
 
-    // Update all country labels by their IDs
-    document.querySelectorAll(".country-label > div").forEach((labelDiv) => {
-      labelDiv.style.fontSize = `${fontSize}px`;
-      labelDiv.style.opacity = labelDiv.style.opacity * opacity;
-    });
-    showOnlySelectedLabels(selectedYearDisplayedSet);
+  map.on("dragend", function () {
+    const currentCenter = map.getCenter();
+
+    if (!bounds.contains(currentCenter)) {
+      const clampedLat = Math.max(
+        southWest.lat,
+        Math.min(northEast.lat, currentCenter.lat)
+      );
+      const clampedLng = Math.max(
+        southWest.lng,
+        Math.min(northEast.lng, currentCenter.lng)
+      );
+      map.setView([clampedLat, clampedLng]);
+    }
   });
 }
 
-function showOnlySelectedLabels(selectedCountries) {
+function showSelectedMapLabels(selectedCountries) {
+  const zoom = map.getZoom();
+  const fontSize = Math.max(8, Math.min(zoom * 2, 24));
+
   const normalizedSelectedCountries = new Set(
     Array.from(selectedCountries).map((country) =>
       country.replace(/\s+/g, "-").toLowerCase()
     )
   );
 
-  // Get all country labels
   document.querySelectorAll(".country-label > div").forEach((labelDiv) => {
+    labelDiv.style.fontSize = `${fontSize}px`;
     const labelId = labelDiv.id.replace("label-", "");
 
     // Show only the labels in the selectedCountries set
-    if (normalizedSelectedCountries.has(labelId)) {
+    if (normalizedSelectedCountries.has(labelId) && zoom > 2) {
       labelDiv.style.opacity = 1; // Make visible
     } else {
       labelDiv.style.opacity = 0; // Hide
@@ -358,16 +404,13 @@ function showOnlySelectedLabels(selectedCountries) {
 }
 
 function mapClick(countryName) {
-  console.log(`Clicked on: ${countryName}`);
-
   const radioValue = document.querySelector('input[name="mode"]:checked').value;
   if (radioValue === "nationality") {
-    const filteredData = selectByNation(countryName);
+    const filteredData = selectPlayersByNation(countryName);
     selectedPlayersTable.setData(filteredData);
   } else { // leagues
-    document.getElementById("map_div").classList.add("hide");
+    mapDiv.classList.add("hide");
     let leagues = getUniqueLeaguesByCountry(countryName);
-    console.log(leagues);
     if (leagues.size > 1) {
       showLeagues(countryName, leagues);
     } else {
@@ -377,98 +420,85 @@ function mapClick(countryName) {
 }
 
 function showLeagues(countryName, leagues) {
-  console.log(`Showing leagues for: ${countryName}`);
-
-  document.getElementById('league_div').classList.add("show");
+  leagueDiv.classList.add("show");
 
   const leagueContainer = document.getElementById('league_grid');
+  const countryNameSpan = document.getElementById("country_name");
+  countryNameSpan.textContent = countryName;
   leagueContainer.innerHTML = '';
 
   leagues.forEach(league => {
     const leagueWrapper = document.createElement('div');
-    leagueWrapper.className = 'league-wrapper';
+    leagueWrapper.className = 'badge-wrapper';
+
     const leagueBadge = document.createElement('div');
     leagueBadge.className = 'badge';
-
-    let badge = getLeagueBadgePath(league)
+    const badge = getLeagueBadgePath(league);
     leagueBadge.style.backgroundImage = `url(${badge})`;
-    leagueBadge.style.backgroundSize = 'contain';
-    leagueBadge.style.backgroundRepeat = 'no-repeat';
-    leagueBadge.style.width = '100px';
-    leagueBadge.style.height = '100px';
-    leagueBadge.style.margin = '0 auto';
-
     leagueBadge.onclick = function () {
       selectedLeague = league;
       showTeams(countryName, league);
     };
 
     const leagueName = document.createElement('div');
-    leagueName.className = 'league-name';
+    leagueName.className = 'badge-label';
     leagueName.textContent = league;
-    leagueName.style.textAlign = 'center';
-    leagueName.style.marginTop = '10px';
+
     leagueWrapper.appendChild(leagueBadge);
     leagueWrapper.appendChild(leagueName);
     leagueContainer.appendChild(leagueWrapper);
 
-    const filteredData = selectByLeagueCountry(countryName)
+    const filteredData = selectPlayersByCountry(countryName);
     selectedPlayersTable.setData(filteredData);
   });
 }
 
 function showTeams(countryName, leagueName) {
-  console.log(`Showing teams for: ${leagueName}`);
-
-  document.getElementById('league_div').classList.remove("show");
-  document.getElementById('team_div').classList.add("show");
+  leagueDiv.classList.remove("show");
+  teamDiv.classList.add("show");
 
   const teamContainer = document.getElementById('team_grid');
-  teamContainer.innerHTML = '';
+  teamContainer.innerHTML = ''; // Clear previous content
+  const leagueNameSpan = document.getElementById("league_name");
+  leagueNameSpan.textContent = leagueName;
 
   const teams = getLeagueClubIds(countryName, leagueName);
-
   teams.forEach(team => {
-    const clubName = getClubNameById(team);
-    const teamBadge = document.createElement('div');
-    teamBadge.className = 'badge';
-    let logo;
-    logo = getClubLogoURL(team, 120)
-    let i = new Image();
-    i.onload = () => {
-      console.log("Was here")
-      teamBadge.style.backgroundImage = `url(${logo})`;
-    };
-    i.onerror = () => {
-      teamBadge.style.backgroundImage = `url(./undeffined-logo.png)`;
-    };
-    i.src = logo;
-    teamBadge.style.backgroundSize = 'contain';
-    teamBadge.style.backgroundRepeat = 'no-repeat';
-    teamBadge.style.width = '100px';
-    teamBadge.style.height = '100px';
-    teamBadge.style.margin = '0 auto';
+    const wrapper = document.createElement('div');
+    wrapper.className = 'badge-wrapper'; // Reuse league-wrapper class
 
-    const teamName = document.createElement('div');
-    teamName.textContent = clubName;
-    teamName.style.textAlign = 'center';
-    teamName.style.marginTop = '5px';
-    teamBadge.appendChild(teamName);
+    // Badge element
+    const badge = document.createElement('div');
+    badge.className = 'badge'; // Reuse badge class
+    const logo = getClubLogoURL(team, 120);
 
-    teamBadge.onclick = function () {
-      selectedClub = clubName;
-      console.log(`Clicked on team: ${clubName}`);
-      const filteredData = selectByClub(countryName, leagueName, clubName);
+    const img = new Image();
+    img.onload = () => {
+      badge.style.backgroundImage = `url(${logo})`;
+    };
+    img.onerror = () => {
+      badge.style.backgroundImage = `url(./data/images/undefined-logo.png)`;
+    };
+    img.src = logo;
+
+    const name = document.createElement('div');
+    name.className = 'badge-label';
+    name.textContent = getClubNameById(team);
+
+    badge.onclick = () => {
+      selectedClub = name.textContent;
+      const filteredData = selectPlayersByClub(countryName, leagueName, selectedClub);
       selectedPlayersTable.setData(filteredData);
     };
 
-    teamContainer.appendChild(teamBadge);
+    wrapper.appendChild(badge);
+    wrapper.appendChild(name);
+    teamContainer.appendChild(wrapper);
 
-    const filteredData = selectByLeague(countryName, leagueName);
+    const filteredData = selectPlayersByLeague(countryName, leagueName);
     selectedPlayersTable.setData(filteredData);
   });
 }
-
 
 function setupPlayersTable() {
   let table = new Tabulator("#table_div", {
@@ -541,20 +571,21 @@ function setupPlayersTable() {
     }
 
     // Ensure the selected row retains its custom color
-    if (selectedRow && selectedRow.getElement() === row.getElement()) {
+    if (selectedRow && selectedRow.getData().player_id === row.getData().player_id) {
       row.getElement().style.backgroundColor = 'rgba(42, 157, 143, 0.4)'; // Last clicked row color
     }
   }
 
   table.on("dataProcessed", function () {
-    let firstRow = table.getRows()[0];
-    selectedRow = firstRow; // Store the first row as the selected row
-    // Select the first row and apply the selected color
+    if (firstLoad) { // Only on first load and version change not to override the selected player all the time
+      let firstRow = table.getRows()[0];
+      selectedRow = firstRow;
+      playerDisplayStats(firstRow.getData());
+      firstLoad = false;
+    }
     table.getRows().forEach(r => {
-      rowFormatter(r); // Use the rowFormatter to restore the original colors
+      rowFormatter(r);
     });
-    playerDisplayStats(firstRow.getData()); // Display the stats for the first player
-
   });
 
   table.on("rowClick", (e, row) => {
@@ -581,7 +612,7 @@ function setupPlayersTable() {
     comparePlayerToReference(inspectedPlayerData);
   });
 
-  return table;
+  selectedPlayersTable = table;
 }
 
 function comparePlayerToReference(inspectedPlayerData) {
@@ -642,22 +673,21 @@ function comparePlayerToReference(inspectedPlayerData) {
     ];
   }
 
-  removeDatasetAtIndex(playerRadarChart, 1);
-  if (referencePlayerId != comparedPlayerId) {
-    appendDataset(playerRadarChart, dataPoints)
+  radarRemoveComparedPlayerDataset(playerRadarChart, 1);
+  if (referencePlayerId != comparedPlayerId && !(referencePlayerData.player_positions != 'GK' && inspectedPlayerData.player_positions == 'GK')) {
+    radarAddComparedPlayerDataset(playerRadarChart, dataPoints, inspectedPlayerData.name)
   }
 
   let timeData;
-  removeLine(playerWageTimeLine, 1);
-  console.log(referencePlayerId, comparedPlayerId)
+  lineRemoveComparedPlayerDataset(playerWageTimeLine, 1);
   if (referencePlayerId != comparedPlayerId) {
     timeData = getPlayerWages(inspectedPlayerData.player_id);
-    addLine(playerWageTimeLine, timeData);
+    lineAddComparedPlayerDataset(playerWageTimeLine, timeData, inspectedPlayerData.name);
   }
-  removeLine(playerValueTimeLine, 1);
+  lineRemoveComparedPlayerDataset(playerValueTimeLine, 1);
   if (referencePlayerId != comparedPlayerId) {
-    timeData = getPlayerValues(inspectedPlayerData.player_id);
-    addLine(playerValueTimeLine, timeData);
+    timeData = getPlayerMarketValues(inspectedPlayerData.player_id);
+    lineAddComparedPlayerDataset(playerValueTimeLine, timeData, inspectedPlayerData.name);
   }
 }
 
@@ -678,7 +708,6 @@ function playerDisplayStats(selectedPlayer) {
   const playerPhotoDiv = document.getElementById("player_photo");
   let i = new Image();
   i.onload = () => {
-    console.log("Was here")
     playerPhotoDiv.style.backgroundImage = `url('${photoURL}')`;
   };
   i.onerror = () => {
@@ -728,18 +757,20 @@ function playerDisplayStats(selectedPlayer) {
   updatePlayerStats(selectedPlayer);
 
   ctx = document.createElement("canvas");
+  ctx.style.margin = '20px';
   container = document.getElementById("wage_timeline");
   container.innerHTML = ""; // Clear previous chart
   container.appendChild(ctx);
   let timeData = getPlayerWages(selectedPlayer.player_id);
-  playerWageTimeLine = createTimelineChart(ctx, timeData, "Player's Wage")
+  playerWageTimeLine = createTimelineChart(ctx, timeData, "Player's Wage", selectedPlayer.name)
 
   ctx = document.createElement("canvas");
+  ctx.style.margin = '20px';
   container = document.getElementById("value_timeline");
   container.innerHTML = ""; // Clear previous chart
   container.appendChild(ctx);
-  timeData = getPlayerValues(selectedPlayer.player_id);
-  playerValueTimeLine = createTimelineChart(ctx, timeData, "Player's Value")
+  timeData = getPlayerMarketValues(selectedPlayer.player_id);
+  playerValueTimeLine = createTimelineChart(ctx, timeData, "Player's Value", selectedPlayer.name)
 
   drawHeatmap(selectedPlayer)
 
@@ -754,15 +785,16 @@ function createRadarChart(ctx, labels, dataPoints, playerName) {
       datasets: [
         {
           data: dataPoints,
-          backgroundColor: "rgba(0, 0, 0, 0)", // Transparent background
-          borderColor: "rgb(42, 157, 143)", // Chart line color (if any)
+          label: playerName,
+          backgroundColor: "rgba(0, 0, 0, 0)",
+          borderColor: "rgb(42, 157, 143)",
           pointBackgroundColor: function (context) {
-            const value = context.raw; // Get the value of the point
+            const value = context.raw;
             return getColor(value);
           },
-          pointBorderColor: "#fff", // White border for the points
-          pointRadius: 4, // Bigger dots
-          borderWidth: 2, // Thinner connecting line
+          pointBorderColor: "rgba(0,0,0,0)",
+          pointRadius: 4,
+          borderWidth: 2,
         },
       ],
     },
@@ -779,15 +811,19 @@ function createRadarChart(ctx, labels, dataPoints, playerName) {
           beginAtZero: true,
           suggestedMax: 100,
           grid: {
-            display: false, // Remove grid lines
+            display: false,
+          },
+          angleLines: {
+            color: "rgba(0, 0, 0, 0.3)",
+            lineWidth: 1,
           },
           ticks: {
-            display: false, // Remove numeric scales (20, 40, etc.)
+            display: false,
           },
           pointLabels: {
             font: {
               size: 10,
-              weight: "bold", // Make labels bold
+              weight: "bold",
             },
             color: "black",
             callback: function (playerName, index) {
@@ -796,53 +832,95 @@ function createRadarChart(ctx, labels, dataPoints, playerName) {
           },
         },
       },
+      plugins: {
+        tooltip: {
+          callbacks: {
+            title: function (context) {
+              const datasetIndex = context[0].datasetIndex;
+              const playerName = context[0].chart.data.datasets[datasetIndex].label;
+              return playerName;
+            },
+            label: function (context) {
+              return ` ${context.raw}`;
+            },
+          },
+        },
+        legend: {
+          display: false,
+        },
+      },
     },
   });
 }
 
-function appendDataset(radarChart, newData, playerName) {
+function radarAddComparedPlayerDataset(radarChart, newData, playerName) {
   radarChart.data.datasets.push({
     data: newData,
-    backgroundColor: "rgba(0, 0, 0, 0)",/* Fully transparent */
-    // Red color with 0.3 opacity
-    borderColor: "rgb(236, 14, 14)", // Chart line color
+    label: playerName,
+    backgroundColor: "rgba(0, 0, 0, 0)",
+    borderColor: "rgb(236, 14, 14)",
     pointBackgroundColor: function (context) {
-      const value = context.raw; // Get the value of the point
+      const value = context.raw;
       return getColor(value);
     },
-    pointBorderColor: "#fff",
-    pointRadius: 4, // Bigger dots
-    borderWidth: 2, // Thinner connecting line
+    pointRadius: 4,
+    pointBorderColor: "rgba(0,0,0,0)",
+    borderWidth: 2,
   });
+  // Reduce the visibility of the reference player data
   radarChart.data.datasets[0].borderColor = "rgba(42, 157, 143, 0.5)"
-  radarChart.data.datasets[0].borderWidth = 1,
-  radarChart.update();
+  radarChart.data.datasets[0].pointRadius = 3,
+    radarChart.update();
 }
 
-function removeDatasetAtIndex(radarChart, index = 1) {
+function radarRemoveComparedPlayerDataset(radarChart, index = 1) {
   if (radarChart.data.datasets.length > index) {
-    radarChart.data.datasets.splice(index, 1); // Remove dataset at index 1
+    radarChart.data.datasets.splice(index, 1);
+    // Adjust the visibility of the reference player data
     radarChart.data.datasets[0].borderColor = "rgba(42, 157, 143, 1)"
-    radarChart.data.datasets[0].borderWidth = 2,
-    radarChart.update(); // Update chart to reflect changes
+    radarChart.data.datasets[0].pointRadius = 4,
+      radarChart.update();
   }
 }
 
-function createTimelineChart(ctx, data, label) {
-  const maxDataValue = Math.max(...data);
+function calculateMaxYScale(maxValue) {
+  const rawMax = maxValue * 1.05;
+  const magnitude = Math.floor(Math.log10(rawMax));
+  const stepSize = Math.pow(10, magnitude);
+  const finalMax = Math.ceil(rawMax / stepSize) * stepSize;
+  return finalMax;
+}
 
-  let chart = new Chart(ctx, {
+function formatTicks(value, stepSize) {
+  if (value === 0) return '0';
+  const stepLabel = Math.floor(value / stepSize) * stepSize;
+  if (stepLabel >= 1e6) {
+    return (stepLabel / 1e6).toFixed(0) + 'M';
+  } else if (stepLabel >= 1e3) {
+    return (stepLabel / 1e3).toFixed(0) + 'K';
+  }
+  return stepLabel.toString();
+}
+
+function createTimelineChart(ctx, data, label, playerName) {
+  const maxDataValue = Math.max(...data);
+  const stepSize = Math.pow(10, Math.floor(Math.log10(maxDataValue)) - 3);
+  const finalMax = calculateMaxYScale(maxDataValue);
+
+  return new Chart(ctx, {
     type: 'line',
     data: {
-      labels: ['2020', '2021', '2022', '2023', '2024'], // FIFA versions as years
+      labels: ['2020', '2021', '2022', '2023', '2024'],
       datasets: [{
         data: data,
-        backgroundColor: 'rgba(42, 157, 143, 0.2)', // Fill color under the line
+        borderColor: '#2a9d8f',
+        backgroundColor: 'rgba(42, 157, 143, 0.4)',
         tension: 0.4,
-        borderWidth: 2,
-        pointRadius: 5,
+        borderWidth: 1,
+        pointRadius: 4,
         pointBackgroundColor: '#2a9d8f',
-        pointBorderWidth: 2
+        pointBorderWidth: 2,
+        label: playerName,
       }]
     },
     options: {
@@ -851,68 +929,128 @@ function createTimelineChart(ctx, data, label) {
         x: {
           title: {
             display: true,
-            text: 'Year'
+            text: 'Year',
+            color: 'rgba(0, 0, 0, 1)',
+          },
+          border: {
+            color: 'rgba(0, 0, 0, 1)', // Darker color for the axis
+            lineWidth: 1, // Thicker axis line
+          },
+          ticks: {
+            color: 'rgba(0, 0, 0, 1)',
           },
         },
         y: {
-          title: {
-            display: true,
-            text: label
-          },
-          beginAtZero: false,
-          max: maxDataValue * 1.05,
           ticks: {
             callback: function (value) {
-              return value === null ? 'N/A' : value.toLocaleString(); // Handle null values
-            }
-          }
+              return formatTicks(value, stepSize); // Format ticks with K/M
+            },
+            color: 'rgba(0, 0, 0, 1)',
+          },
+          title: {
+            display: true,
+            text: label,
+            color: '#000',
+          },
+          border: {
+            color: 'rgba(0, 0, 0, 1)', // Darker color for the axis
+            lineWidth: 1, // Thicker axis line
+          },
+          min: 0,
+          max: finalMax, // Use the dynamically calculated final max value
         }
       },
       plugins: {
+        tooltip: {
+          callbacks: {
+            title: function (context) {
+              const datasetIndex = context[0].datasetIndex;
+              const playerName = context[0].chart.data.datasets[datasetIndex].label;
+              return playerName;
+            },
+            label: function (context) {
+              return ` ${context.raw}`;
+            },
+          },
+        },
         legend: {
           display: false,
         },
       },
     }
   });
-  return chart;
 }
 
-function addLine(chart, newData) {
+function updateYScale(chart) {
+  const allDataPoints = chart.data.datasets.flatMap(dataset => dataset.data);
+  const maxValue = Math.max(0, ...allDataPoints);
+  const finalMax = calculateMaxYScale(maxValue);
+  chart.options.scales.y = {
+    ...chart.options.scales.y,
+    min: 0,
+    max: finalMax,
+  };
+}
+
+function lineAddComparedPlayerDataset(chart, newData, playerName) {
   chart.data.datasets.push({
+    label: playerName,
     data: newData,
-    backgroundColor: 'rgb(236, 14, 14)', // Optional: Line fill color
+    borderColor: 'rgb(236, 14, 14)',
+    backgroundColor: 'rgb(236, 14, 14)',
     tension: 0.4,
-    borderWidth: 2,
-    pointRadius: 5,
+    borderWidth: 1,
+    pointRadius: 4,
     pointBackgroundColor: "rgb(236, 14, 14)",
     pointBorderWidth: 2
   });
   updateYScale(chart);
-  chart.update(); // Update the chart to render the new line
+  chart.update();
 }
 
-function removeLine(chart, index) {
-  chart.data.datasets.splice(index, 1); // Remove dataset at specific index
+function lineRemoveComparedPlayerDataset(chart, index) {
+  chart.data.datasets.splice(index, 1);
   updateYScale(chart);
-  chart.update(); // Update the chart to reflect the changes
+  chart.update();
 }
 
-function updateYScale(chart) {
-  // Flatten all data points into a single array and find the maximum
-  const allDataPoints = chart.data.datasets.flatMap(dataset => dataset.data);
-  const maxValue = Math.max(0, ...allDataPoints); // Ensure max is at least 0
-
-  // Update the y-axis scale
-  chart.options.scales.y = {
-    ...chart.options.scales.y, // Preserve other y-axis settings
-    min: 0, // Minimum is always 0
-    max: 1.05 * maxValue, // Maximum based on data
-  };
-}
 
 function getLeagueBadgePath(league) {
-  return "./premier-league.png"
+  switch (league) {
+    case "Premier League":
+      return "./data/images/premier-league-logo.png"
+    case "Championship":
+      return "./data/images/the-championship-logo.png"
+    case "Premiership":
+      return "./data/images/scotish-premiership-logo.jpg"
+    case "League One":
+      return "./data/images/league-one-logo.png"
+    case "League Two":
+      return "./data/images/league-two-logo.png"
+
+    case "Serie A":
+      return "./data/images/serie-a-logo.png"
+    case "Serie B":
+      return "./data/images/serie-b-logo.png"
+
+    case "Ligue 1":
+      return "./data/images/ligue1-logo.jpg"
+    case "Ligue 2":
+      return "./data/images/ligue2-logo.jpg"
+
+    case "Bundesliga":
+      return "./data/images/bundesliga-logo.png"
+    case "2. Bundesliga":
+      return "./data/images/bundesliga2-logo.png"
+    case "3. Liga":
+      return "./data/images/3liga-logo.png"
+
+    case "La Liga":
+      return "./data/images/la-liga-logo.jpg"
+    case "La Liga 2":
+      return "./data/images/la-liga2-logo.png"
+  }
+  return "./data/images/undefined-logo.png"
 }
 
 function getClubLogoURL(club_id, size) {
@@ -929,22 +1067,22 @@ function getLeagueClubIds(country, league) {
   return uniqueClubIds;
 }
 
-function selectByNation(nationality) {
+function selectPlayersByNation(nationality) {
   return selectedYearData.filter((row) =>
     row.nationality_name === nationality);
 }
 
-function selectByLeagueCountry(league_country) {
+function selectPlayersByCountry(league_country) {
   return selectedYearData.filter((row) =>
     row.league_country === league_country);
 }
 
-function selectByLeague(league_country, league_name) {
+function selectPlayersByLeague(league_country, league_name) {
   return selectedYearData.filter((row) =>
     row.league_name === league_name && row.league_country === league_country);
 }
 
-function selectByClub(league_country, league_name, club_name) {
+function selectPlayersByClub(league_country, league_name, club_name) {
   return selectedYearData.filter((row) =>
     row.club_name === club_name && row.league_name === league_name && row.league_country === league_country);
 }
@@ -982,9 +1120,6 @@ function getColor(value) {
 }
 
 function getFontColor(value) {
-  const colors = [
-    "darkred", "#de3700", "darkorange", "orange", "#ffe600", "#e1ff00", "#92e000", "#2aa10f", "darkgreen", "#295e11"
-  ];
   if (value == 0) return "black";
   if (value < 25) return "white";
   if (value < 50) return "white";
@@ -992,7 +1127,7 @@ function getFontColor(value) {
   if (value < 65) return "black";
   if (value < 70) return "black";
   if (value < 75) return "black";
-  if (value < 80) return "white";
+  if (value < 80) return "black";
   if (value < 87) return "white";
   if (value < 93) return "white";
   return "white"
@@ -1010,7 +1145,7 @@ function updatePlayerStats(playerData) {
 
   stats.forEach(stat => {
     const element = document.getElementById(stat);
-    const value = playerData[stat] || 0;
+    const value = playerData[stat];
     const color = getColor(value);
 
     // Update the value and apply background color
@@ -1020,7 +1155,7 @@ function updatePlayerStats(playerData) {
   });
 }
 
-function getPlayerValues(player_id) {
+function getPlayerMarketValues(player_id) {
   let value_eur_per_year = [null, null, null, null, null];
   const playerData = allVersionsData.filter(d => d.player_id === player_id);
   playerData.forEach((record) => {
@@ -1040,39 +1175,41 @@ function getPlayerWages(player_id) {
   return wage_eur_per_year;
 }
 
-const searchInput = document.getElementById("search_input");
-const dropdownList = document.getElementById("dropdown_list");
-const searchButton = document.getElementById("search_button");
-
 // Function to update the dropdown with matching terms
 function updateDropdown(filteredTerms) {
-  dropdownList.innerHTML = ""; // Clear previous list
+  searchDropdownList.innerHTML = ""; // Clear previous list
   filteredTerms.forEach(term => {
     const item = document.createElement("div");
     item.classList.add("dropdown-item");
     item.textContent = term;
     item.onclick = () => {
       searchInput.value = term; // Set the clicked term in the input
-      dropdownList.style.display = "none"; // Hide dropdown after selection
+      searchDropdownList.style.display = "none"; // Hide dropdown after selection
     };
-    dropdownList.appendChild(item);
+    searchDropdownList.appendChild(item);
   });
-  dropdownList.style.display = filteredTerms.length > 0 ? "block" : "none"; // Show/hide dropdown based on results
+  searchDropdownList.style.display = filteredTerms.length > 0 ? "block" : "none"; // Show/hide dropdown based on results
 }
 
 // Event listener for search input
 searchInput.addEventListener("input", function () {
   const searchTerm = this.value.toLowerCase();
-  const filteredTerms = [...selectedYearDisplayedSet].filter(term => term.toLowerCase().includes(searchTerm));
+  const filteredTerms = [...selectedYearDisplayed].filter(term => term.toLowerCase().includes(searchTerm));
   updateDropdown(filteredTerms); // Update the dropdown with filtered terms
 });
 
 // Event listener for search button (click action)
 searchButton.addEventListener("click", function () {
   const selectedTerm = searchInput.value;
-  if (selectedYearDisplayedSet.has(selectedTerm)) {
+  searchInput.value = "";
+  if (selectedYearDisplayed.has(selectedTerm)) {
     selectedCountry = selectedTerm;
     selectedCountryHasMultipleLeagues = getUniqueLeaguesByCountry(selectedTerm).size > 1;
+    searchDropdownList.classList.remove("show")
+    PLAYER_ATTRIBUTES.forEach(attr => {
+      const diffElement = document.getElementById(`${attr}_diff`);
+      diffElement.classList.remove('show');
+    });
     mapClick(selectedTerm);
   }
 });
@@ -1088,7 +1225,6 @@ function drawHeatmap(data) {
     ["gk"]
   ];
 
-  // Select the heatmap div and get its dimensions
   const heatmapDiv = d3.select("#heatmap");
   heatmapDiv.selectAll("svg").remove();
   const width = heatmapDiv.node().clientWidth;
@@ -1098,9 +1234,8 @@ function drawHeatmap(data) {
     .attr("width", width)
     .attr("height", height);
 
-  const rowHeight = height / positions.length; // Divide the div into 7 rows
+  const rowHeight = height / positions.length;
 
-  // Create a tooltip element
   const tooltip = d3.select("body").append("div")
     .attr("class", "tooltip")
     .style("position", "absolute")
@@ -1113,10 +1248,10 @@ function drawHeatmap(data) {
     .style("z-index", "9999");
 
   positions.forEach((level, rowIndex) => {
-    const levelWidth = width / level.length; // Divide row into columns based on positions
+    const levelWidth = width / level.length; // Divide row into columns based on number of positions
 
     level.forEach((position, colIndex) => {
-      const value = data[position]; // Get the value for this position from the datapoint
+      const value = data[position];
 
       const rect = svg.append("rect")
         .attr("x", colIndex * levelWidth)
@@ -1125,13 +1260,13 @@ function drawHeatmap(data) {
         .attr("height", rowHeight)
         .attr("fill", getColor(value));
 
-      // Optional: Add labels to each rectangle
+      // Labels for rectangles
       svg.append("text")
         .attr("x", (colIndex + 0.5) * levelWidth)
         .attr("y", (rowIndex + 0.5) * rowHeight)
         .attr("text-anchor", "middle")
         .attr("dominant-baseline", "middle")
-        .attr("font-size", "12px")
+        .attr("font-size", "11px")
         .attr("fill", getFontColor(value))
         .text(position.toUpperCase())
         .style("pointer-events", "none");
@@ -1140,11 +1275,10 @@ function drawHeatmap(data) {
       rect.on("mouseover", function (event) {
         tooltip.style("visibility", "visible")
           .text(`${position.toUpperCase()}: ${value}`)
-          .style("top", (event.pageY + 10) + "px")  // Add slight offset for better positioning
+          .style("top", (event.pageY + 10) + "px")
           .style("left", (event.pageX + 10) + "px");
       });
 
-      // Mouse out event to hide tooltip
       rect.on("mouseout", function () {
         tooltip.style("visibility", "hidden");
       });

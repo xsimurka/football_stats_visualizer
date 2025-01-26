@@ -6,20 +6,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Football Players Stats Visualizer</title>
   <link href="style.css" rel="stylesheet">
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
   <link href="https://unpkg.com/tabulator-tables@6.3.0/dist/css/tabulator.min.css" rel="stylesheet">
-  <script src="https://unpkg.com/tabulator-tables@6.3.0/dist/js/tabulator.min.js"></script>
   <link href="https://unpkg.com/leaflet/dist/leaflet.css" rel="stylesheet">
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/heatmap.js/2.0.2/heatmap.min.js"></script>
-  <script src="https://d3js.org/d3.v7.min.js"></script>
-  <script type="module" src="app.js"></script>
 </head>
 
 <body>
-  <div class="container">
+
+  <div class="main-container">
+
     <div id="map_div">
       <div id="radio_buttons">
         <label>
@@ -42,24 +36,31 @@
       </div>
 
       <div id="search_area" class="search-container">
-        <input type="text" id="search_input" placeholder="Search..." />
-        <!-- Dropdown for filtered terms -->
-        <div id="dropdown_list" class="dropdown-list"></div>
-        <button id="search_button">Search</button>
+        <div id="search_group" class="search-group">
+          <input type="text" id="search_input" class="search_input" placeholder="Search..." />
+          <!-- Dropdown for filtered terms -->
+          <div id="dropdown_list" class="dropdown-list"></div>
+        </div>
+        <button id="search_button" class="search_button">Search</button>
       </div>
     </div>
     <div id="table_div" class="tabulator-container"></div>
 
     <div id="league_div" class="badge-div">
-      <button id="back_button_leagues" class="back-button">Back</button>
+      <div id="league_button_container" class="back-button-container">
+        <span id="country_name"></span>
+        <button id="back_button_leagues" class="back-button">Back</button>
+      </div>
       <div id="league_grid" class="badge-grid"></div>
     </div>
 
     <div id="team_div" class="badge-div">
-      <button id="back_button_teams" class="back-button">Back</button>
+      <div id="team_button_container" class="back-button-container">
+        <span id="league_name"></span>
+        <button id="back_button_teams" class="back-button">Back</button>
+      </div>
       <div id="team_grid" class="badge-grid"></div>
     </div>
-
 
     <div id="reference_player">
       <!-- Top container -->
@@ -88,7 +89,7 @@
         <!-- Right (Starchart) -->
         <div id="starchart" class="right"></div>
       </div>
-      
+
       <!-- Middle container -->
       <div class="container middle-container">
 
@@ -244,5 +245,14 @@
       </div>
     </div>
   </div>
+</body>
+
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
+<script src="https://unpkg.com/tabulator-tables@6.3.0/dist/js/tabulator.min.js"></script>
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/heatmap.js/2.0.2/heatmap.min.js"></script>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script type="module" src="app.js"></script>
 
 </html>

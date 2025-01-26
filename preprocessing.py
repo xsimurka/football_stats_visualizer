@@ -1,10 +1,9 @@
 import pandas as pd
 
 # Example usage
-csv_file = "./public/players_all_preprocessed.csv"  # Replace with the actual path to your dataset
-csv_copy = "./public/players_all_preprocessed_copy.csv"
+csv_file = "./public/data/players_all_preprocessed.csv"  # Replace with the actual path to your dataset
 df = pd.read_csv(csv_file)
-df_copy = pd.read_csv(csv_copy)
+
 
 
 def get_unique_league_names(df):
@@ -144,30 +143,6 @@ def print_unique_leagues(club_names):
 #df.loc[df['club_name'].isin(paraguay), 'league_country'] = "Paraguay"
 
 
-df.loc[(df['club_team_id'] == 101110), 'league_country'] = 'Uruguay'
+df.loc[(df['club_team_id'] == 112584), 'league_country'] = 'Chile'
 df.to_csv(csv_file, index=False)
-#115535 115536
 
-
-
-#filtered_records = df_copy[df_copy['club_name'].isin(['Shakhtar Donetsk', 'Dynamo Kyiv'])]
-
-# Append the filtered records to the second dataframe
-#df_copy = pd.concat([df_copy, filtered_records], ignore_index=True)
-
-
-#df_copy.to_csv(csv_file, index=False)
-
-
-# Group by 'club_name_id' and calculate the number of distinct 'league_country' for each club
-# clubs_with_multiple_countries = df.groupby('league_country')['league_name'].nunique()
-#
-# # Filter clubs where the number of distinct 'league_country' is greater than 1
-# clubs_with_multiple_countries = clubs_with_multiple_countries[clubs_with_multiple_countries > 1]
-#
-# # Print the IDs of clubs with multiple distinct 'league_country'
-# if not clubs_with_multiple_countries.empty:
-#     print("Clubs with more than one distinct league_country:")
-#     print(clubs_with_multiple_countries.index.tolist())
-# else:
-#     print("No clubs found with more than one distinct league_country.")

@@ -543,14 +543,14 @@ function setupPlayersTable() {
       {
         title: "League",
         field: "league_name",
-        headerSort: false,
+        headerSort: true,
         resizable: false,
         minWidth: 200
       },
       {
         title: "Nationality",
         field: "nationality_name",
-        headerSort: false,
+        headerSort: true,
         resizable: false,
         minWidth: 150
       },
@@ -657,7 +657,8 @@ function displayInspectedPlayer(inspectedPlayerData) {
 
   });
 
-  let { dataPoints } = getPlayerStats(inspectedPlayerData)
+  // Get data based on the reference player position
+  let { dataPoints } = getPlayerStats(inspectedPlayerData, referencePlayerData.player_positions === 'GK')
 
   /* Update all 3 charts */
   radarRemoveComparedPlayerDataset(playerRadarChart, 1);
@@ -707,7 +708,8 @@ function displaySelectedPlayer(selectedPlayer) {
   };
   i.src = photoURL;
 
-  const { labels, dataPoints } = getPlayerStats(selectedPlayer);
+  // Select attributes based on players own position
+  const { labels, dataPoints } = getPlayerStats(selectedPlayer, selectedPlayer.player_positions === 'GK');
   console.log(labels, dataPoints)
 
   let radarCanvas = document.createElement("canvas");
@@ -737,16 +739,16 @@ function displaySelectedPlayer(selectedPlayer) {
   drawHeatmap(selectedPlayer)
 }
 
-function getPlayerStats(player) {
-  if (player.player_positions === "GK") {
+function getPlayerStats(player, goalie_stats) {
+  if (goalie_stats) {
     return {
       labels: GK_LABELS,
-      dataPoints: GK_ATTRIBUTES.map(attr => +player[attr]),
+      dataPoints: GK_ATTRIBUTES.map(attr => +player[attr] || 0),
     };
   } else {
     return {
       labels: PLAYER_LABELS,
-      dataPoints: PLAYER_ATTRIBUTES.map(attr => +player[attr]),
+      dataPoints: PLAYER_ATTRIBUTES.map(attr => +player[attr] || 0),
     };
   }
 }
@@ -771,8 +773,8 @@ function getLeagueBadgeURL(league) {
       return "./data/images/premier-league-logo.png"
     case "Championship":
       return "./data/images/the-championship-logo.png"
-    case "Premiership":
-      return "./data/images/scotish-premiership-logo.jpg"
+    case "Scottish Premiership":
+      return "./data/images/scottish-premiership-logo.jpg"
     case "League One":
       return "./data/images/league-one-logo.png"
     case "League Two":

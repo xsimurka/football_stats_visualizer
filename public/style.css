@@ -315,7 +315,7 @@ body {
   font-size: 0.9rem;
 }
 
-.top-container .left {
+.top-container .player-photo {
   background-color: #ffffff;
   background-image: url('https://cdn.sofifa.net/player_0.svg');
   background-size: cover;
@@ -326,21 +326,21 @@ body {
   justify-content: center;
 }
 
-.top-container .center {
+.top-container .player-info {
   display: flex;
   flex-direction: column;
   height: 100%;
   width: 30%;
 }
 
-.top-container .center .player-name {
+.top-container .player-info .player-name {
   display: flex;
   font-size: 1.3rem;
   font-weight: bold;
   margin-bottom: 2%;
 }
 
-.top-container .center .player-details {
+.top-container .player-info .player-details {
   font-size: 1rem;
   white-space: nowrap;
   overflow: hidden;
@@ -367,7 +367,7 @@ body {
   pointer-events: none;
 }
 
-.top-container .right {
+.top-container .radar-chart {
   display: flex;
   box-sizing: border-box;
   background-color:  #e9c46a;
@@ -417,16 +417,8 @@ body {
   border-radius: 10px;
   display: flex;
   flex-direction: column;
-  padding-top: 8px;
-  gap: 8px;
-}
-
-.middle-container .span {
-  height: 5%;
-  width: 100%;
-  font-size: 1.2rem;
-  color: black;
-  text-align: center;
+  padding-top: 0.5%;
+  gap: 5%;
 }
 
 .middle-container .stats {
@@ -446,8 +438,8 @@ body {
 }
 
 .middle-container .stat {
-  margin-left: 20px;
-  margin-top: 11px;
+  margin-left: 12%;
+  margin-top: 7%;
   margin-bottom: 0px;
   font-size: 0.75rem;
   font-weight: 600;

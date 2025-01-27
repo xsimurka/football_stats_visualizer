@@ -1194,8 +1194,14 @@ function updateDropdown(filteredTerms) {
 // Event listener for search input
 searchInput.addEventListener("input", function () {
   const searchTerm = this.value.toLowerCase();
-  const filteredTerms = [...selectedYearDisplayed].filter(term => term.toLowerCase().includes(searchTerm));
-  updateDropdown(filteredTerms); // Update the dropdown with filtered terms
+  
+  // If search term is empty, don't show anything
+  if (searchTerm === "") {
+    updateDropdown([]); // Pass an empty array to hide the dropdown
+  } else {
+    const filteredTerms = [...selectedYearDisplayed].filter(term => term.toLowerCase().startsWith(searchTerm));
+    updateDropdown(filteredTerms); // Update the dropdown with filtered terms
+  }
 });
 
 // Event listener for search button (click action)

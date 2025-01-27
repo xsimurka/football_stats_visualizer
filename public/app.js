@@ -203,7 +203,6 @@ fifaVersionSelectMenu.addEventListener("change", (event) => {
   selectedPlayersTable.setData(selectedYearData);
   displaySelectedPlayer(selectedPlayersTable.getRows()[0].getData()); // Display the first player when version changed
   showSelectedMapLabels(selectedYearDisplayed)
-  hideAttributeComparizons();
 });
 
 function backToMap() {
@@ -225,7 +224,6 @@ document.querySelectorAll('input[name="mode"]').forEach((radio) => {
     setCountryStylesAndInteractivity(mapGeoLayer);
     selectedPlayersTable.setData(selectedYearData);
     showSelectedMapLabels(selectedYearDisplayed)
-    hideAttributeComparizons();
   });
 });
 
@@ -265,10 +263,6 @@ function setCountryStylesAndInteractivity() {
   });
 }
 
-searchInput.addEventListener("blur", () => {
-  searchDropdownList.style.display = "none";
-});
-
 // Hide dropdown if clicking outside of the search input or dropdown
 document.addEventListener("click", function (event) {
   var searchContainer = document.querySelector(".search-container");
@@ -286,7 +280,7 @@ function updateDropdown(filteredTerms) {
     item.textContent = term;
     item.onclick = () => {
       searchInput.value = term; // Set the clicked term in the input
-      searchDropdownList.style.display = "none"; // Hide dropdown after selection
+      searchDropdownList.style.display = "none"; // Hide dropdown after selection immediately
     };
     searchDropdownList.appendChild(item);
   });
@@ -314,10 +308,6 @@ searchButton.addEventListener("click", function () {
     selectedCountry = selectedTerm;
     selectedCountryHasMultipleLeagues = getUniqueLeaguesByCountry(selectedTerm).size > 1;
     searchDropdownList.classList.remove("show")
-    PLAYER_STATS.forEach(attr => {
-      const diffElement = document.getElementById(`${attr}_diff`);
-      diffElement.classList.remove('show');
-    });
     mapClick(selectedTerm);
   }
 });
@@ -596,6 +586,11 @@ function setupPlayersTable() {
     table.getRows().forEach(r => {
       rowFormatter(r);
     });
+    // Remove all the comparizons when a new selection is done
+    hideAttributeComparizons();
+    lineRemoveComparedPlayerDataset(playerWageTimeLine)
+    lineRemoveComparedPlayerDataset(playerValueTimeLine)
+    radarRemoveComparedPlayerDataset(playerRadarChart)
   });
 
   table.on("rowClick", (e, row) => {
@@ -608,6 +603,7 @@ function setupPlayersTable() {
 
 
     displaySelectedPlayer(selectedPlayer);
+    hideAttributeComparizons();
   });
 
   table.on("rowMouseOver", (e, row) => {
@@ -671,13 +667,13 @@ function displayInspectedPlayer(inspectedPlayerData) {
   }
 
   let timeData;
-  lineRemoveComparedPlayerDataset(playerWageTimeLine, 1);
+  lineRemoveComparedPlayerDataset(playerWageTimeLine);
   if (referencePlayerId != comparedPlayerId) {
     timeData = getPlayerWages(inspectedPlayerData.player_id);
     lineAddComparedPlayerDataset(playerWageTimeLine, timeData, inspectedPlayerData.name);
   }
 
-  lineRemoveComparedPlayerDataset(playerValueTimeLine, 1);
+  lineRemoveComparedPlayerDataset(playerValueTimeLine);
   if (referencePlayerId != comparedPlayerId) {
     timeData = getPlayerMarketValues(inspectedPlayerData.player_id);
     lineAddComparedPlayerDataset(playerValueTimeLine, timeData, inspectedPlayerData.name);
@@ -1137,7 +1133,7 @@ function lineAddComparedPlayerDataset(lineChart, newData, playerName) {
   lineChart.update();
 }
 
-function lineRemoveComparedPlayerDataset(lineChart, index) {
+function lineRemoveComparedPlayerDataset(lineChart, index = 1) {
   lineChart.data.datasets.splice(index, 1);
   updateYScale(lineChart);
   lineChart.update();

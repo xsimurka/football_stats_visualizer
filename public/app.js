@@ -41,51 +41,23 @@ var playerValueTimeLine;
 var playerWageTimeLine;
 var playerRadarChart;
 
-
 const DEFAULT_FIFA_VERSION = 24;
 const MULTIPLE_LEAGUE_COUNTRIES = new Set(["United Kingdom", "Italy", "Germany", "France", "Spain"])
 
 // Attributes to compare
-const PLAYER_ATTRIBUTES = [
-  "attacking_crossing",
-  "attacking_finishing",
-  "attacking_heading_accuracy",
-  "attacking_short_passing",
-  "attacking_volleys",
-  "skill_dribbling",
-  "skill_curve",
-  "skill_fk_accuracy",
-  "skill_long_passing",
-  "skill_ball_control",
-  "movement_acceleration",
-  "movement_sprint_speed",
-  "movement_agility",
-  "movement_reactions",
-  "movement_balance",
-  "power_shot_power",
-  "power_jumping",
-  "power_stamina",
-  "power_strength",
-  "power_long_shots",
-  "mentality_aggression",
-  "mentality_interceptions",
-  "mentality_positioning",
-  "mentality_vision",
-  "mentality_penalties",
-  "mentality_composure",
-  "defending_marking_awareness",
-  "defending_standing_tackle",
-  "defending_sliding_tackle",
+const PLAYER_STATS = [
+  'attacking_crossing', 'attacking_finishing', 'attacking_heading_accuracy', 'attacking_short_passing', 'attacking_volleys',
+  'skill_dribbling', 'skill_curve', 'skill_fk_accuracy', 'skill_long_passing', 'skill_ball_control',
+  'movement_acceleration', 'movement_sprint_speed', 'movement_agility', 'movement_reactions', 'movement_balance',
+  'power_shot_power', 'power_jumping', 'power_stamina', 'power_strength', 'power_long_shots',
+  'mentality_aggression', 'mentality_interceptions', 'mentality_positioning', 'mentality_vision', 'mentality_penalties', 'mentality_composure',
+  'defending_marking_awareness', 'defending_standing_tackle', 'defending_sliding_tackle'
 ];
 
-const GOALIE_ATTRIBUTES = [
-  "goalkeeping_diving",
-  "goalkeeping_handling",
-  "goalkeeping_kicking",
-  "goalkeeping_positioning",
-  "goalkeeping_reflexes",
-  "goalkeeping_speed",
-]
+const PLAYER_ATTRIBUTES = ["defending", "shooting", "passing", "dribbling", "pace", "physic"];
+const PLAYER_LABELS = ["Defending", "Shooting", "Passing", "Dribbling", "Pace", "Physic"];
+const GK_ATTRIBUTES = ["goalkeeping_diving", "goalkeeping_handling", "goalkeeping_kicking", "goalkeeping_positioning", "goalkeeping_reflexes", "goalkeeping_speed"]
+const GK_LABELS = ["Diving", "Handling", "Kicking", "Positioning", "Reflexes", "Speed"];
 
 /* HTML components getters */
 const backButtonLeagues = document.getElementById("back_button_leagues");
@@ -229,7 +201,7 @@ fifaVersionSelectMenu.addEventListener("change", (event) => {
 
   setCountryStylesAndInteractivity(mapGeoLayer);
   selectedPlayersTable.setData(selectedYearData);
-  playerDisplayStats(selectedPlayersTable.getRows()[0].getData()); // Display the first player when version changed
+  displaySelectedPlayer(selectedPlayersTable.getRows()[0].getData()); // Display the first player when version changed
   showSelectedMapLabels(selectedYearDisplayed)
   hideAttributeComparizons();
 });
@@ -258,7 +230,7 @@ document.querySelectorAll('input[name="mode"]').forEach((radio) => {
 });
 
 function hideAttributeComparizons() {
-  PLAYER_ATTRIBUTES.forEach(attr => {
+  PLAYER_STATS.forEach(attr => {
     const diffElement = document.getElementById(`${attr}_diff`);
     diffElement.classList.remove('show');
   });
@@ -302,6 +274,51 @@ document.addEventListener("click", function (event) {
   var searchContainer = document.querySelector(".search-container");
   if (!searchContainer.contains(event.target)) {
     searchDropdownList.style.display = "none";
+  }
+});
+
+// Function to update the dropdown with matching terms
+function updateDropdown(filteredTerms) {
+  searchDropdownList.innerHTML = ""; // Clear previous list
+  filteredTerms.forEach(term => {
+    const item = document.createElement("div");
+    item.classList.add("dropdown-item");
+    item.textContent = term;
+    item.onclick = () => {
+      searchInput.value = term; // Set the clicked term in the input
+      searchDropdownList.style.display = "none"; // Hide dropdown after selection
+    };
+    searchDropdownList.appendChild(item);
+  });
+  searchDropdownList.style.display = filteredTerms.length > 0 ? "block" : "none"; // Show/hide dropdown based on results
+}
+
+// Event listener for search input
+searchInput.addEventListener("input", function () {
+  const searchTerm = this.value.toLowerCase();
+
+  // If search term is empty, don't show anything
+  if (searchTerm === "") {
+    updateDropdown([]); // Pass an empty array to hide the dropdown
+  } else {
+    const filteredTerms = [...selectedYearDisplayed].filter(term => term.toLowerCase().startsWith(searchTerm));
+    updateDropdown(filteredTerms); // Update the dropdown with filtered terms
+  }
+});
+
+// Event listener for search button (click action)
+searchButton.addEventListener("click", function () {
+  const selectedTerm = searchInput.value;
+  searchInput.value = "";
+  if (selectedYearDisplayed.has(selectedTerm)) {
+    selectedCountry = selectedTerm;
+    selectedCountryHasMultipleLeagues = getUniqueLeaguesByCountry(selectedTerm).size > 1;
+    searchDropdownList.classList.remove("show")
+    PLAYER_STATS.forEach(attr => {
+      const diffElement = document.getElementById(`${attr}_diff`);
+      diffElement.classList.remove('show');
+    });
+    mapClick(selectedTerm);
   }
 });
 
@@ -433,7 +450,7 @@ function showLeagues(countryName, leagues) {
 
     const leagueBadge = document.createElement('div');
     leagueBadge.className = 'badge';
-    const badge = getLeagueBadgePath(league);
+    const badge = getLeagueBadgeURL(league);
     leagueBadge.style.backgroundImage = `url(${badge})`;
     leagueBadge.onclick = function () {
       selectedLeague = league;
@@ -470,7 +487,7 @@ function showTeams(countryName, leagueName) {
     // Badge element
     const badge = document.createElement('div');
     badge.className = 'badge'; // Reuse badge class
-    const logo = getClubLogoURL(team, 120);
+    const logo = getClubBadgeURL(team, 120);
 
     const img = new Image();
     img.onload = () => {
@@ -518,13 +535,6 @@ function setupPlayersTable() {
         headerSort: true,
         resizable: false,
         sorter: "number",
-      },
-      {
-        title: "Age",
-        field: "age",
-        headerSort: true,
-        resizable: false,
-        sorter: "number"
       },
       {
         title: "Positions",
@@ -580,7 +590,7 @@ function setupPlayersTable() {
     if (firstLoad) { // Only on first load and version change not to override the selected player all the time
       let firstRow = table.getRows()[0];
       selectedRow = firstRow;
-      playerDisplayStats(firstRow.getData());
+      displaySelectedPlayer(firstRow.getData());
       firstLoad = false;
     }
     table.getRows().forEach(r => {
@@ -597,83 +607,65 @@ function setupPlayersTable() {
     });
 
 
-    playerDisplayStats(selectedPlayer);
+    displaySelectedPlayer(selectedPlayer);
   });
 
   table.on("rowMouseOver", (e, row) => {
     table.getRows().forEach(r => {
       rowFormatter(r); // This will use the default row colors from rowFormatter
     });
-    if (row.getElement() !== selectedRow?.getElement()) {
+    if (row.getData().player_id != selectedRow.getData().player_id) {
       row.getElement().style.backgroundColor = 'rgba(236, 14, 14, 0.4)'; // Light red for hovered row
     }
 
     let inspectedPlayerData = row.getData();
-    comparePlayerToReference(inspectedPlayerData);
+    displayInspectedPlayer(inspectedPlayerData);
   });
 
   selectedPlayersTable = table;
 }
 
-function comparePlayerToReference(inspectedPlayerData) {
+function displayInspectedPlayer(inspectedPlayerData) {
   if (inspectedPlayerData.player_id == comparedPlayerId) { // inspecting the same player as last time (no change)
     return;
   }
   comparedPlayerId = inspectedPlayerData.player_id;
   let referencePlayerData = selectedYearData.find(d => d.player_id === referencePlayerId);
 
-  PLAYER_ATTRIBUTES.forEach(attr => {
-    const inspectedValue = inspectedPlayerData[attr];
-    const referenceValue = referencePlayerData[attr];
+  PLAYER_STATS.forEach(stat => {
+    const inspectedValue = inspectedPlayerData[stat];
+    const referenceValue = referencePlayerData[stat];
 
     const difference = inspectedValue - referenceValue;
 
     // Update the *_diff span
-    const diffElement = document.getElementById(`${attr}_diff`);
-    if (diffElement) {
-      if (comparedPlayerId == referencePlayerId) {
-        diffElement.classList.remove('show');
-      } else {
-        diffElement.classList.add('show');
-      }
-      diffElement.textContent = difference > 0 ? `+${difference}` : difference;
-
-      if (difference > 0) {
-        diffElement.style.backgroundColor = "green"; // Positive difference
-        diffElement.style.color = "white";
-      } else if (difference < 0) {
-        diffElement.style.backgroundColor = "#de3700"; // Negative difference
-        diffElement.style.color = "white";
-      } else {
-        diffElement.style.backgroundColor = "lightgrey"; // No difference
-        diffElement.style.color = "black";
-      }
+    const diffElement = document.getElementById(`${stat}_diff`);
+    if (comparedPlayerId == referencePlayerId) {
+      diffElement.classList.remove('show');
+    } else {
+      diffElement.classList.add('show');
     }
+
+    diffElement.textContent = difference > 0 ? `+${difference}` : difference;
+
+    if (difference > 0) {
+      diffElement.style.backgroundColor = "green"; // Positive difference
+      diffElement.style.color = "white";
+    } else if (difference < 0) {
+      diffElement.style.backgroundColor = "#de3700"; // Negative difference
+      diffElement.style.color = "white";
+    } else {
+      diffElement.style.backgroundColor = "lightgrey"; // No difference
+      diffElement.style.color = "black";
+    }
+
   });
 
-  let dataPoints;
+  let { dataPoints } = getPlayerStats(inspectedPlayerData)
 
-  if (referencePlayerData.player_positions === "GK") {
-    dataPoints = [
-      +inspectedPlayerData.goalkeeping_diving,
-      +inspectedPlayerData.goalkeeping_handling,
-      +inspectedPlayerData.goalkeeping_kicking,
-      +inspectedPlayerData.goalkeeping_positioning,
-      +inspectedPlayerData.goalkeeping_reflexes,
-      +inspectedPlayerData.goalkeeping_speed,
-    ];
-  } else {
-    dataPoints = [
-      +inspectedPlayerData.pace,
-      +inspectedPlayerData.shooting,
-      +inspectedPlayerData.passing,
-      +inspectedPlayerData.dribbling,
-      +inspectedPlayerData.defending,
-      +inspectedPlayerData.physic,
-    ];
-  }
-
+  /* Update all 3 charts */
   radarRemoveComparedPlayerDataset(playerRadarChart, 1);
+  // Goalies do not have player attributes therefore it make no sense to compare them with player
   if (referencePlayerId != comparedPlayerId && !(referencePlayerData.player_positions != 'GK' && inspectedPlayerData.player_positions == 'GK')) {
     radarAddComparedPlayerDataset(playerRadarChart, dataPoints, inspectedPlayerData.name)
   }
@@ -684,6 +676,7 @@ function comparePlayerToReference(inspectedPlayerData) {
     timeData = getPlayerWages(inspectedPlayerData.player_id);
     lineAddComparedPlayerDataset(playerWageTimeLine, timeData, inspectedPlayerData.name);
   }
+
   lineRemoveComparedPlayerDataset(playerValueTimeLine, 1);
   if (referencePlayerId != comparedPlayerId) {
     timeData = getPlayerMarketValues(inspectedPlayerData.player_id);
@@ -691,8 +684,9 @@ function comparePlayerToReference(inspectedPlayerData) {
   }
 }
 
-function playerDisplayStats(selectedPlayer) {
+function displaySelectedPlayer(selectedPlayer) {
   referencePlayerId = selectedPlayer.player_id;
+
   document.getElementById("player_name").textContent = selectedPlayer.name;
   document.getElementById("player_position").textContent = `Position: ${selectedPlayer.player_positions}`;
   document.getElementById("player_age").textContent = `Age: ${selectedPlayer.age}`;
@@ -706,6 +700,8 @@ function playerDisplayStats(selectedPlayer) {
 
   const photoURL = getPlayersPhotoURL(selectedPlayer.player_id, selectedPlayer.fifa_version, 240);
   const playerPhotoDiv = document.getElementById("player_photo");
+
+  // Handles the case when the player nas no photo in the database
   let i = new Image();
   i.onload = () => {
     playerPhotoDiv.style.backgroundImage = `url('${photoURL}')`;
@@ -715,70 +711,204 @@ function playerDisplayStats(selectedPlayer) {
   };
   i.src = photoURL;
 
-  let labels, dataPoints;
+  const { labels, dataPoints } = getPlayerStats(selectedPlayer);
+  console.log(labels, dataPoints)
 
-  if (selectedPlayer.player_positions === "GK") {
-    labels = [
-      "Diving",
-      "Handling",
-      "Kicking",
-      "Positioning",
-      "Reflexes",
-      "Speed",
-    ];
-    dataPoints = [
-      +selectedPlayer.goalkeeping_diving,
-      +selectedPlayer.goalkeeping_handling,
-      +selectedPlayer.goalkeeping_kicking,
-      +selectedPlayer.goalkeeping_positioning,
-      +selectedPlayer.goalkeeping_reflexes,
-      +selectedPlayer.goalkeeping_speed,
-    ];
-  } else {
-    labels = ["Pace", "Shooting", "Passing", "Dribbling", "Defending", "Physic"];
-    dataPoints = [
-      +selectedPlayer.pace,
-      +selectedPlayer.shooting,
-      +selectedPlayer.passing,
-      +selectedPlayer.dribbling,
-      +selectedPlayer.defending,
-      +selectedPlayer.physic,
-    ];
-  }
+  let radarCanvas = document.createElement("canvas");
+  let container = document.getElementById("radarchart");
+  radarCanvas.style.margin = '5px';
+  container.innerHTML = "";
+  playerRadarChart = createRadarChart(radarCanvas, labels, dataPoints, selectedPlayer.name);
+  container.appendChild(radarCanvas);
 
-  // Create or update the radar chart
-  let ctx = document.createElement("canvas");
-  let container = document.getElementById("starchart");
-  container.innerHTML = ""; // Clear previous chart
-  playerRadarChart = createRadarChart(ctx, labels, dataPoints, selectedPlayer.name);
-  container.appendChild(ctx);
+  let timeLineCanvas = document.createElement("canvas");
+  timeLineCanvas.style.margin = '20px';
+  container = document.getElementById("wage_timeline");
+  container.innerHTML = "";
+  let timeData = getPlayerWages(selectedPlayer.player_id);
+  playerWageTimeLine = createTimelineChart(timeLineCanvas, timeData, "Monthly Wage", selectedPlayer.name)
+  container.appendChild(timeLineCanvas);
 
+  timeLineCanvas = document.createElement("canvas");
+  timeLineCanvas.style.margin = '20px';
+  container = document.getElementById("value_timeline");
+  container.innerHTML = "";
+  timeData = getPlayerMarketValues(selectedPlayer.player_id);
+  playerValueTimeLine = createTimelineChart(timeLineCanvas, timeData, "Market Value", selectedPlayer.name)
+  container.appendChild(timeLineCanvas);
 
   updatePlayerStats(selectedPlayer);
-
-  ctx = document.createElement("canvas");
-  ctx.style.margin = '20px';
-  container = document.getElementById("wage_timeline");
-  container.innerHTML = ""; // Clear previous chart
-  container.appendChild(ctx);
-  let timeData = getPlayerWages(selectedPlayer.player_id);
-  playerWageTimeLine = createTimelineChart(ctx, timeData, "Player's Wage", selectedPlayer.name)
-
-  ctx = document.createElement("canvas");
-  ctx.style.margin = '20px';
-  container = document.getElementById("value_timeline");
-  container.innerHTML = ""; // Clear previous chart
-  container.appendChild(ctx);
-  timeData = getPlayerMarketValues(selectedPlayer.player_id);
-  playerValueTimeLine = createTimelineChart(ctx, timeData, "Player's Value", selectedPlayer.name)
-
   drawHeatmap(selectedPlayer)
-
 }
 
+function getPlayerStats(player) {
+  if (player.player_positions === "GK") {
+    return {
+      labels: GK_LABELS,
+      dataPoints: GK_ATTRIBUTES.map(attr => +player[attr]),
+    };
+  } else {
+    return {
+      labels: PLAYER_LABELS,
+      dataPoints: PLAYER_ATTRIBUTES.map(attr => +player[attr]),
+    };
+  }
+}
 
-function createRadarChart(ctx, labels, dataPoints, playerName) {
-  return new Chart(ctx, {
+function updatePlayerStats(playerData) {
+  PLAYER_STATS.forEach(stat => {
+    const element = document.getElementById(stat);
+    const value = playerData[stat];
+    const color = getColor(value);
+
+    // Update the value and apply background color
+    element.innerText = value;
+    element.style.color = getFontColor(value)
+    element.style.backgroundColor = color;
+  });
+}
+
+/* Getters */
+function getLeagueBadgeURL(league) {
+  switch (league) {
+    case "Premier League":
+      return "./data/images/premier-league-logo.png"
+    case "Championship":
+      return "./data/images/the-championship-logo.png"
+    case "Premiership":
+      return "./data/images/scotish-premiership-logo.jpg"
+    case "League One":
+      return "./data/images/league-one-logo.png"
+    case "League Two":
+      return "./data/images/league-two-logo.png"
+
+    case "Serie A":
+      return "./data/images/serie-a-logo.png"
+    case "Serie B":
+      return "./data/images/serie-b-logo.png"
+
+    case "Ligue 1":
+      return "./data/images/ligue1-logo.jpg"
+    case "Ligue 2":
+      return "./data/images/ligue2-logo.jpg"
+
+    case "Bundesliga":
+      return "./data/images/bundesliga-logo.png"
+    case "2. Bundesliga":
+      return "./data/images/bundesliga2-logo.png"
+    case "3. Liga":
+      return "./data/images/3liga-logo.png"
+
+    case "La Liga":
+      return "./data/images/la-liga-logo.jpg"
+    case "La Liga 2":
+      return "./data/images/la-liga2-logo.png"
+  }
+  return "./data/images/undefined-logo.png"
+}
+
+function getClubBadgeURL(club_id, size) {
+  const logoURL = `https://cdn.sofifa.net/teams/${club_id}/${size}.png`;
+  return logoURL;
+}
+
+function getLeagueClubIds(country, league) {
+  const filteredClubs = selectedYearData.filter(
+    (row) => row.league_name === league && row.league_country === country
+  );
+  const uniqueClubIds = new Set(filteredClubs.map((row) => row.club_team_id));
+  return uniqueClubIds;
+}
+
+function selectPlayersByNation(nationality) {
+  return selectedYearData.filter((row) =>
+    row.nationality_name === nationality);
+}
+
+function selectPlayersByCountry(league_country) {
+  return selectedYearData.filter((row) =>
+    row.league_country === league_country);
+}
+
+function selectPlayersByLeague(league_country, league_name) {
+  return selectedYearData.filter((row) =>
+    row.league_name === league_name && row.league_country === league_country);
+}
+
+function selectPlayersByClub(league_country, league_name, club_name) {
+  return selectedYearData.filter((row) =>
+    row.club_name === club_name && row.league_name === league_name && row.league_country === league_country);
+}
+
+function getUniqueLeaguesByCountry(league_country) {
+  const filteredData = selectedYearData.filter((row) =>
+    row.league_country === league_country);
+  return new Set(filteredData.map(row => row.league_name));
+}
+
+function getClubNameById(club_team_id) {
+  const club = selectedYearData.find((row) => row.club_team_id === club_team_id);
+  return club ? club.club_name : null;
+}
+
+function getPlayersPhotoURL(player_id, fifa_version, size) {
+  const idString = player_id.toString()
+  return `https://cdn.sofifa.net/players/${idString.slice(0, 3)}/${idString.slice(3)}/${fifa_version}_${size}.png`;
+}
+
+function getColor(value) {
+  const COLORS = [
+    "darkred", "#de3700", "darkorange", "orange", "#ffe600", "#e1ff00", "#92e000", "#2aa10f", "darkgreen", "#295e11"
+  ];
+  if (value < 25) return COLORS[0];
+  if (value < 50) return COLORS[1];
+  if (value < 57) return COLORS[2];
+  if (value < 65) return COLORS[3];
+  if (value < 70) return COLORS[4];
+  if (value < 75) return COLORS[5];
+  if (value < 80) return COLORS[6];
+  if (value < 87) return COLORS[7];
+  if (value < 93) return COLORS[8];
+  return COLORS[9]
+}
+
+function getFontColor(value) {
+  if (value == 0) return "black";
+  if (value < 25) return "white";
+  if (value < 50) return "white";
+  if (value < 57) return "black";
+  if (value < 65) return "black";
+  if (value < 70) return "black";
+  if (value < 75) return "black";
+  if (value < 80) return "black";
+  if (value < 87) return "white";
+  if (value < 93) return "white";
+  return "white"
+}
+
+/* Charts */
+function getPlayerMarketValues(player_id) {
+  let value_eur_per_year = [null, null, null, null, null];
+  const playerData = allVersionsData.filter(d => d.player_id === player_id);
+  playerData.forEach((record) => {
+    const yearIndex = record.fifa_version - 20;
+    value_eur_per_year[yearIndex] = record.value_eur;
+  });
+  return value_eur_per_year;
+}
+
+function getPlayerWages(player_id) {
+  let wage_eur_per_year = [null, null, null, null, null];
+  const playerData = allVersionsData.filter(d => d.player_id === player_id);
+  playerData.forEach((record) => {
+    const yearIndex = record.fifa_version - 20;
+    wage_eur_per_year[yearIndex] = record.wage_eur;
+  });
+  return wage_eur_per_year;
+}
+
+function createRadarChart(canvas, labels, dataPoints, playerName) {
+  return new Chart(canvas, {
     type: "radar",
     data: {
       labels: labels,
@@ -823,7 +953,6 @@ function createRadarChart(ctx, labels, dataPoints, playerName) {
           pointLabels: {
             font: {
               size: 10,
-              weight: "bold",
             },
             color: "black",
             callback: function (playerName, index) {
@@ -883,36 +1012,17 @@ function radarRemoveComparedPlayerDataset(radarChart, index = 1) {
   }
 }
 
-function calculateMaxYScale(maxValue) {
-  const rawMax = maxValue * 1.05;
-  const magnitude = Math.floor(Math.log10(rawMax));
-  const stepSize = Math.pow(10, magnitude);
-  const finalMax = Math.ceil(rawMax / stepSize) * stepSize;
-  return finalMax;
-}
-
-function formatTicks(value, stepSize) {
-  if (value === 0) return '0';
-  const stepLabel = Math.floor(value / stepSize) * stepSize;
-  if (stepLabel >= 1e6) {
-    return (stepLabel / 1e6).toFixed(0) + 'M';
-  } else if (stepLabel >= 1e3) {
-    return (stepLabel / 1e3).toFixed(0) + 'K';
-  }
-  return stepLabel.toString();
-}
-
-function createTimelineChart(ctx, data, label, playerName) {
-  const maxDataValue = Math.max(...data);
+function createTimelineChart(canvas, dataPoints, type, playerName) {
+  const maxDataValue = Math.max(...dataPoints);
   const stepSize = Math.pow(10, Math.floor(Math.log10(maxDataValue)) - 3);
   const finalMax = calculateMaxYScale(maxDataValue);
 
-  return new Chart(ctx, {
+  return new Chart(canvas, {
     type: 'line',
     data: {
       labels: ['2020', '2021', '2022', '2023', '2024'],
       datasets: [{
-        data: data,
+        data: dataPoints,
         borderColor: '#2a9d8f',
         backgroundColor: 'rgba(42, 157, 143, 0.4)',
         tension: 0.4,
@@ -933,8 +1043,8 @@ function createTimelineChart(ctx, data, label, playerName) {
             color: 'rgba(0, 0, 0, 1)',
           },
           border: {
-            color: 'rgba(0, 0, 0, 1)', // Darker color for the axis
-            lineWidth: 1, // Thicker axis line
+            color: 'rgba(0, 0, 0, 1)',
+            lineWidth: 1,
           },
           ticks: {
             color: 'rgba(0, 0, 0, 1)',
@@ -943,21 +1053,21 @@ function createTimelineChart(ctx, data, label, playerName) {
         y: {
           ticks: {
             callback: function (value) {
-              return formatTicks(value, stepSize); // Format ticks with K/M
+              return formatTicks(value, stepSize);
             },
             color: 'rgba(0, 0, 0, 1)',
           },
           title: {
             display: true,
-            text: label,
+            text: type,
             color: '#000',
           },
           border: {
-            color: 'rgba(0, 0, 0, 1)', // Darker color for the axis
-            lineWidth: 1, // Thicker axis line
+            color: 'rgba(0, 0, 0, 1)',
+            lineWidth: 1,
           },
           min: 0,
-          max: finalMax, // Use the dynamically calculated final max value
+          max: finalMax,
         }
       },
       plugins: {
@@ -992,8 +1102,27 @@ function updateYScale(chart) {
   };
 }
 
-function lineAddComparedPlayerDataset(chart, newData, playerName) {
-  chart.data.datasets.push({
+function calculateMaxYScale(maxValue) {
+  const rawMax = maxValue * 1.05;
+  const magnitude = Math.floor(Math.log10(rawMax));
+  const stepSize = Math.pow(10, magnitude);
+  const finalMax = Math.ceil(rawMax / stepSize) * stepSize;
+  return finalMax;
+}
+
+function formatTicks(value, stepSize) {
+  if (value === 0) return '0';
+  const stepLabel = Math.floor(value / stepSize) * stepSize;
+  if (stepLabel >= 1e6) {
+    return (stepLabel / 1e6).toFixed(0) + 'M';
+  } else if (stepLabel >= 1e3) {
+    return (stepLabel / 1e3).toFixed(0) + 'K';
+  }
+  return stepLabel.toString();
+}
+
+function lineAddComparedPlayerDataset(lineChart, newData, playerName) {
+  lineChart.data.datasets.push({
     label: playerName,
     data: newData,
     borderColor: 'rgb(236, 14, 14)',
@@ -1004,221 +1133,16 @@ function lineAddComparedPlayerDataset(chart, newData, playerName) {
     pointBackgroundColor: "rgb(236, 14, 14)",
     pointBorderWidth: 2
   });
-  updateYScale(chart);
-  chart.update();
+  updateYScale(lineChart);
+  lineChart.update();
 }
 
-function lineRemoveComparedPlayerDataset(chart, index) {
-  chart.data.datasets.splice(index, 1);
-  updateYScale(chart);
-  chart.update();
+function lineRemoveComparedPlayerDataset(lineChart, index) {
+  lineChart.data.datasets.splice(index, 1);
+  updateYScale(lineChart);
+  lineChart.update();
 }
 
-
-function getLeagueBadgePath(league) {
-  switch (league) {
-    case "Premier League":
-      return "./data/images/premier-league-logo.png"
-    case "Championship":
-      return "./data/images/the-championship-logo.png"
-    case "Premiership":
-      return "./data/images/scotish-premiership-logo.jpg"
-    case "League One":
-      return "./data/images/league-one-logo.png"
-    case "League Two":
-      return "./data/images/league-two-logo.png"
-
-    case "Serie A":
-      return "./data/images/serie-a-logo.png"
-    case "Serie B":
-      return "./data/images/serie-b-logo.png"
-
-    case "Ligue 1":
-      return "./data/images/ligue1-logo.jpg"
-    case "Ligue 2":
-      return "./data/images/ligue2-logo.jpg"
-
-    case "Bundesliga":
-      return "./data/images/bundesliga-logo.png"
-    case "2. Bundesliga":
-      return "./data/images/bundesliga2-logo.png"
-    case "3. Liga":
-      return "./data/images/3liga-logo.png"
-
-    case "La Liga":
-      return "./data/images/la-liga-logo.jpg"
-    case "La Liga 2":
-      return "./data/images/la-liga2-logo.png"
-  }
-  return "./data/images/undefined-logo.png"
-}
-
-function getClubLogoURL(club_id, size) {
-  const logoURL = `https://cdn.sofifa.net/teams/${club_id}/${size}.png`;
-  return logoURL;
-}
-
-
-function getLeagueClubIds(country, league) {
-  const filteredClubs = selectedYearData.filter(
-    (row) => row.league_name === league && row.league_country === country
-  );
-  const uniqueClubIds = new Set(filteredClubs.map((row) => row.club_team_id));
-  return uniqueClubIds;
-}
-
-function selectPlayersByNation(nationality) {
-  return selectedYearData.filter((row) =>
-    row.nationality_name === nationality);
-}
-
-function selectPlayersByCountry(league_country) {
-  return selectedYearData.filter((row) =>
-    row.league_country === league_country);
-}
-
-function selectPlayersByLeague(league_country, league_name) {
-  return selectedYearData.filter((row) =>
-    row.league_name === league_name && row.league_country === league_country);
-}
-
-function selectPlayersByClub(league_country, league_name, club_name) {
-  return selectedYearData.filter((row) =>
-    row.club_name === club_name && row.league_name === league_name && row.league_country === league_country);
-}
-
-function getUniqueLeaguesByCountry(league_country) {
-  const filteredData = selectedYearData.filter((row) =>
-    row.league_country === league_country);
-  return new Set(filteredData.map(row => row.league_name));
-}
-
-function getClubNameById(club_team_id) {
-  const club = selectedYearData.find((row) => row.club_team_id === club_team_id);
-  return club ? club.club_name : null;
-}
-
-function getPlayersPhotoURL(player_id, fifa_version, size) {
-  const idString = player_id.toString()
-  return `https://cdn.sofifa.net/players/${idString.slice(0, 3)}/${idString.slice(3)}/${fifa_version}_${size}.png`;
-}
-
-function getColor(value) {
-  const colors = [
-    "darkred", "#de3700", "darkorange", "orange", "#ffe600", "#e1ff00", "#92e000", "#2aa10f", "darkgreen", "#295e11"
-  ];
-  if (value < 25) return colors[0];
-  if (value < 50) return colors[1];
-  if (value < 57) return colors[2];
-  if (value < 65) return colors[3];
-  if (value < 70) return colors[4];
-  if (value < 75) return colors[5];
-  if (value < 80) return colors[6];
-  if (value < 87) return colors[7];
-  if (value < 93) return colors[8];
-  return colors[9]
-}
-
-function getFontColor(value) {
-  if (value == 0) return "black";
-  if (value < 25) return "white";
-  if (value < 50) return "white";
-  if (value < 57) return "black";
-  if (value < 65) return "black";
-  if (value < 70) return "black";
-  if (value < 75) return "black";
-  if (value < 80) return "black";
-  if (value < 87) return "white";
-  if (value < 93) return "white";
-  return "white"
-}
-
-function updatePlayerStats(playerData) {
-  const stats = [
-    'attacking_crossing', 'attacking_finishing', 'attacking_heading_accuracy', 'attacking_short_passing', 'attacking_volleys',
-    'skill_dribbling', 'skill_curve', 'skill_fk_accuracy', 'skill_long_passing', 'skill_ball_control',
-    'movement_acceleration', 'movement_sprint_speed', 'movement_agility', 'movement_reactions', 'movement_balance',
-    'power_shot_power', 'power_jumping', 'power_stamina', 'power_strength', 'power_long_shots',
-    'mentality_aggression', 'mentality_interceptions', 'mentality_positioning', 'mentality_vision', 'mentality_penalties', 'mentality_composure',
-    'defending_marking_awareness', 'defending_standing_tackle', 'defending_sliding_tackle'
-  ];
-
-  stats.forEach(stat => {
-    const element = document.getElementById(stat);
-    const value = playerData[stat];
-    const color = getColor(value);
-
-    // Update the value and apply background color
-    element.innerText = value;
-    element.style.color = getFontColor(value)
-    element.style.backgroundColor = color;
-  });
-}
-
-function getPlayerMarketValues(player_id) {
-  let value_eur_per_year = [null, null, null, null, null];
-  const playerData = allVersionsData.filter(d => d.player_id === player_id);
-  playerData.forEach((record) => {
-    const yearIndex = record.fifa_version - 20;
-    value_eur_per_year[yearIndex] = record.value_eur;
-  });
-  return value_eur_per_year;
-}
-
-function getPlayerWages(player_id) {
-  let wage_eur_per_year = [null, null, null, null, null];
-  const playerData = allVersionsData.filter(d => d.player_id === player_id);
-  playerData.forEach((record) => {
-    const yearIndex = record.fifa_version - 20;
-    wage_eur_per_year[yearIndex] = record.wage_eur;
-  });
-  return wage_eur_per_year;
-}
-
-// Function to update the dropdown with matching terms
-function updateDropdown(filteredTerms) {
-  searchDropdownList.innerHTML = ""; // Clear previous list
-  filteredTerms.forEach(term => {
-    const item = document.createElement("div");
-    item.classList.add("dropdown-item");
-    item.textContent = term;
-    item.onclick = () => {
-      searchInput.value = term; // Set the clicked term in the input
-      searchDropdownList.style.display = "none"; // Hide dropdown after selection
-    };
-    searchDropdownList.appendChild(item);
-  });
-  searchDropdownList.style.display = filteredTerms.length > 0 ? "block" : "none"; // Show/hide dropdown based on results
-}
-
-// Event listener for search input
-searchInput.addEventListener("input", function () {
-  const searchTerm = this.value.toLowerCase();
-  
-  // If search term is empty, don't show anything
-  if (searchTerm === "") {
-    updateDropdown([]); // Pass an empty array to hide the dropdown
-  } else {
-    const filteredTerms = [...selectedYearDisplayed].filter(term => term.toLowerCase().startsWith(searchTerm));
-    updateDropdown(filteredTerms); // Update the dropdown with filtered terms
-  }
-});
-
-// Event listener for search button (click action)
-searchButton.addEventListener("click", function () {
-  const selectedTerm = searchInput.value;
-  searchInput.value = "";
-  if (selectedYearDisplayed.has(selectedTerm)) {
-    selectedCountry = selectedTerm;
-    selectedCountryHasMultipleLeagues = getUniqueLeaguesByCountry(selectedTerm).size > 1;
-    searchDropdownList.classList.remove("show")
-    PLAYER_ATTRIBUTES.forEach(attr => {
-      const diffElement = document.getElementById(`${attr}_diff`);
-      diffElement.classList.remove('show');
-    });
-    mapClick(selectedTerm);
-  }
-});
 
 function drawHeatmap(data) {
   const positions = [

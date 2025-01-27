@@ -84,16 +84,22 @@
           </div>
         </div>
 
-        <div id="heatmap" class="heatmap"></div>
-
-        <!-- Right (Starchart) -->
-        <div id="starchart" class="right"></div>
+        <div class="heatmap-container">
+          <span>Performance</span>
+          <div id="heatmap" class="heatmap"></div>
+        </div>
+        
+        <!-- Radarchart Container -->
+        <div class="radar-container">
+          <span class="chart-title">Players' statistics</span>
+          <div id="radarchart" class="right"></div>
+        </div>
       </div>
 
       <!-- Middle container -->
       <div class="container middle-container">
 
-
+        <span>Player's detailed statistics</span>
         <!-- Stats -->
         <div class="stats">
           <!-- Row 1 -->
@@ -238,10 +244,15 @@
       <!-- Bottom container -->
       <div class="container bottom-container">
         <!-- Wage plot -->
-        <div id="wage_timeline" class="plot"></div>
-
+        <div class="timeline-container">
+          <span>Players' wage timeline</span>
+          <div id="wage_timeline" class="plot"></div>
+        </div>
         <!-- Market value plot -->
-        <div id="value_timeline" class="plot"></div>
+        <div class="timeline-container">
+          <span>Players' market value timeline</span>
+          <div id="value_timeline" class="plot"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -251,7 +262,6 @@
 <script src="https://unpkg.com/tabulator-tables@6.3.0/dist/js/tabulator.min.js"></script>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/heatmap.js/2.0.2/heatmap.min.js"></script>
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script type="module" src="app.js"></script>
 

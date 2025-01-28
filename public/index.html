@@ -38,7 +38,6 @@
       <div id="search_area" class="search-container">
         <div id="search_group" class="search-group">
           <input type="text" id="search_input" class="search_input" placeholder="Search..." />
-          <!-- Dropdown for filtered terms -->
           <div id="dropdown_list" class="dropdown-list"></div>
         </div>
         <button id="search_button" class="search_button">Search</button>
@@ -63,12 +62,9 @@
     </div>
 
     <div id="reference_player">
-      <!-- Top container -->
       <div class="container top-container">
-        <!-- Left (Player photo) -->
         <div id="player_photo" class="player-photo"></div>
 
-        <!-- Center (Player info) -->
         <div class="player-info">
           <div id="player_name" class="player-name">Player Name</div>
           <div class="player-details">
@@ -88,21 +84,17 @@
           <span>Position performance</span>
           <div id="heatmap" class="heatmap"></div>
         </div>
-        
-        <!-- Radarchart Container -->
+
         <div class="radar-container">
           <span class="chart-title">Players' statistics</span>
           <div id="radarchart" class="radar-chart"></div>
         </div>
       </div>
 
-      <!-- Middle container -->
       <div class="container middle-container">
 
         <span>Player's detailed statistics</span>
-        <!-- Stats -->
         <div class="stats">
-          <!-- Row 1 -->
           <div class="stats-row">
             <div class="stat">
               <span class="stat-value" id="attacking_crossing">0</span> Crossing
@@ -130,7 +122,6 @@
             </div>
           </div>
 
-          <!-- Row 2 -->
           <div class="stats-row">
             <div class="stat">
               <span class="stat-value" id="attacking_finishing">0</span> Finishing
@@ -158,7 +149,6 @@
             </div>
           </div>
 
-          <!-- Row 3 -->
           <div class="stats-row">
             <div class="stat">
               <span class="stat-value" id="attacking_heading_accuracy">0</span> Heading
@@ -186,7 +176,6 @@
             </div>
           </div>
 
-          <!-- Row 4 -->
           <div class="stats-row">
             <div class="stat">
               <span class="stat-value" id="attacking_short_passing">0</span> Short Passing
@@ -214,7 +203,6 @@
             </div>
           </div>
 
-          <!-- Row 5 -->
           <div class="stats-row">
             <div class="stat">
               <span class="stat-value" id="attacking_volleys">0</span> Volleys
@@ -240,15 +228,11 @@
         </div>
       </div>
 
-
-      <!-- Bottom container -->
       <div class="container bottom-container">
-        <!-- Wage plot -->
         <div class="timeline-container">
           <span>Players' wage timeline</span>
           <div id="wage_timeline" class="plot"></div>
         </div>
-        <!-- Market value plot -->
         <div class="timeline-container">
           <span>Players' market value timeline</span>
           <div id="value_timeline" class="plot"></div>

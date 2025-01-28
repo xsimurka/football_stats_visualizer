@@ -53,7 +53,6 @@ const PLAYER_STATS = [
   'mentality_aggression', 'mentality_interceptions', 'mentality_positioning', 'mentality_vision', 'mentality_penalties', 'mentality_composure',
   'defending_marking_awareness', 'defending_standing_tackle', 'defending_sliding_tackle'
 ];
-
 const PLAYER_ATTRIBUTES = ["defending", "shooting", "passing", "dribbling", "pace", "physic"];
 const PLAYER_LABELS = ["Defending", "Shooting", "Passing", "Dribbling", "Pace", "Physic"];
 const GK_ATTRIBUTES = ["goalkeeping_diving", "goalkeeping_handling", "goalkeeping_kicking", "goalkeeping_positioning", "goalkeeping_reflexes", "goalkeeping_speed"]
@@ -72,20 +71,14 @@ const teamDiv = document.getElementById("team_div");
 
 
 document.addEventListener("DOMContentLoaded", function () {
+  // Set initial values to filters
   fifaVersionSelectMenu.value = DEFAULT_FIFA_VERSION;
   document.querySelector('input[name="mode"][value="league"]').checked = true;
   searchInput.value = "";
-
-  backButtonLeagues.addEventListener("click", backToMap);
-  backButtonTeams.addEventListener("click", () => {
-    if (selectedCountryHasMultipleLeagues) {
-      backToLeagues();
-    } else {
-      backToMap();
-    }
-  });
 });
 
+
+/* Load the dataset */
 d3.csv("./data/players_all_preprocessed.csv", (d) => {
   return {
     player_id: +d.player_id,
@@ -188,10 +181,13 @@ d3.csv("./data/players_all_preprocessed.csv", (d) => {
     setupPlayersTable();
   });
 
+
+  /* Game version was changed */
 fifaVersionSelectMenu.addEventListener("change", (event) => {
   firstLoad = true;
   const selectedVersion = event.target.value;
 
+  // Update available countries when new version is chosen
   selectedYearData = allVersionsData.filter(row => row.fifa_version == selectedVersion)
   selectedYearLeagueCountries = new Set(selectedYearData.map(row => row.league_country));
   selectedYearNationalities = new Set(selectedYearData.map(row => row.nationality_name));
@@ -199,11 +195,25 @@ fifaVersionSelectMenu.addEventListener("change", (event) => {
   const selectedMode = document.querySelector('input[name="mode"]:checked').value;
   selectedYearDisplayed = selectedMode === "league" ? selectedYearLeagueCountries : selectedYearNationalities;
 
+  // Update the map
   setCountryStylesAndInteractivity(mapGeoLayer);
+  showSelectedMapLabels(selectedYearDisplayed)
+
+  // Rerender the table
   selectedPlayersTable.setData(selectedYearData);
   displaySelectedPlayer(selectedPlayersTable.getRows()[0].getData()); // Display the first player when version changed
-  showSelectedMapLabels(selectedYearDisplayed)
 });
+
+
+backButtonLeagues.addEventListener("click", backToMap);
+backButtonTeams.addEventListener("click", () => {
+  if (selectedCountryHasMultipleLeagues) {
+    backToLeagues();
+  } else {
+    backToMap();
+  }
+});
+
 
 function backToMap() {
   mapDiv.classList.remove("hide");
@@ -212,12 +222,15 @@ function backToMap() {
   selectedPlayersTable.setData(selectedYearData);
 }
 
+
 function backToLeagues() {
   teamDiv.classList.remove("show");
   leagueDiv.classList.add("show");
   selectedPlayersTable.setData(selectPlayersByCountry(selectedCountry));
 }
 
+
+/* Mode changed (radio buttons)*/
 document.querySelectorAll('input[name="mode"]').forEach((radio) => {
   radio.addEventListener("change", (event) => {
     selectedYearDisplayed = event.target.value === "league" ? selectedYearLeagueCountries : selectedYearNationalities;
@@ -227,16 +240,19 @@ document.querySelectorAll('input[name="mode"]').forEach((radio) => {
   });
 });
 
-function hideAttributeComparizons() {
+
+function hideAttributeDifferences() {
   PLAYER_STATS.forEach(attr => {
     const diffElement = document.getElementById(`${attr}_diff`);
     diffElement.classList.remove('show');
   });
 }
 
+
 function getRandomCountryColor() {
   return MAP_COLORS[Math.floor(Math.random() * MAP_COLORS.length)];
 }
+
 
 function setCountryStylesAndInteractivity() {
   mapGeoLayer.eachLayer((layer) => {
@@ -263,6 +279,7 @@ function setCountryStylesAndInteractivity() {
   });
 }
 
+
 // Hide dropdown if clicking outside of the search input or dropdown
 document.addEventListener("click", function (event) {
   var searchContainer = document.querySelector(".search-container");
@@ -271,9 +288,10 @@ document.addEventListener("click", function (event) {
   }
 });
 
+
 // Function to update the dropdown with matching terms
 function updateDropdown(filteredTerms) {
-  searchDropdownList.innerHTML = ""; // Clear previous list
+  searchDropdownList.innerHTML = "";
   filteredTerms.forEach(term => {
     const item = document.createElement("div");
     item.classList.add("dropdown-item");
@@ -284,8 +302,9 @@ function updateDropdown(filteredTerms) {
     };
     searchDropdownList.appendChild(item);
   });
-  searchDropdownList.style.display = filteredTerms.length > 0 ? "block" : "none"; // Show/hide dropdown based on results
+  searchDropdownList.style.display = filteredTerms.length > 0 ? "block" : "none";
 }
+
 
 // Event listener for search input
 searchInput.addEventListener("input", function () {
@@ -293,14 +312,15 @@ searchInput.addEventListener("input", function () {
 
   // If search term is empty, don't show anything
   if (searchTerm === "") {
-    updateDropdown([]); // Pass an empty array to hide the dropdown
+    updateDropdown([]);
   } else {
     const filteredTerms = [...selectedYearDisplayed].filter(term => term.toLowerCase().startsWith(searchTerm));
-    updateDropdown(filteredTerms); // Update the dropdown with filtered terms
+    updateDropdown(filteredTerms);
   }
 });
 
-// Event listener for search button (click action)
+
+// Event listener for search button
 searchButton.addEventListener("click", function () {
   const selectedTerm = searchInput.value;
   searchInput.value = "";
@@ -311,6 +331,7 @@ searchButton.addEventListener("click", function () {
     mapClick(selectedTerm);
   }
 });
+
 
 function displayMap() {
   const southWest = L.latLng(-60, -180); // Bottom-left corner
@@ -338,7 +359,7 @@ function displayMap() {
       mapGeoLayer = L.geoJSON(countryData, {
         onEachFeature: function (feature, layer) {
           const countryName = feature.properties.ADMIN;
-          const countryId = countryName.replace(/\s+/g, "-").toLowerCase(); // Generate a unique ID
+          const countryId = countryName.replace(/\s+/g, "-").toLowerCase();
 
           layer.on("click", () => {
             if (layer.options.interactive) {
@@ -348,6 +369,7 @@ function displayMap() {
             }
           });
 
+          // Tries to find a reasonable place to put the label (doesnt work that well :D)
           const centroid = turf.centroid(feature).geometry.coordinates.reverse();
           const initialZoom = map.getZoom();
           const initialFontSize = Math.max(8, Math.min(initialZoom * 2, 24));
@@ -370,7 +392,7 @@ function displayMap() {
     showSelectedMapLabels(selectedYearDisplayed);
   });
 
-  map.on("dragend", function () {
+  map.on("dragend", function () { // returns the center to the closest feasible point if border exceeded
     const currentCenter = map.getCenter();
 
     if (!bounds.contains(currentCenter)) {
@@ -386,6 +408,7 @@ function displayMap() {
     }
   });
 }
+
 
 function showSelectedMapLabels(selectedCountries) {
   const zoom = map.getZoom();
@@ -410,6 +433,7 @@ function showSelectedMapLabels(selectedCountries) {
   });
 }
 
+
 function mapClick(countryName) {
   const radioValue = document.querySelector('input[name="mode"]:checked').value;
   if (radioValue === "nationality") {
@@ -426,6 +450,8 @@ function mapClick(countryName) {
   }
 }
 
+
+// Creates a league badge grid
 function showLeagues(countryName, leagues) {
   leagueDiv.classList.add("show");
 
@@ -460,26 +486,27 @@ function showLeagues(countryName, leagues) {
   });
 }
 
+
+// Creates teams badge grid
 function showTeams(countryName, leagueName) {
   leagueDiv.classList.remove("show");
   teamDiv.classList.add("show");
 
   const teamContainer = document.getElementById('team_grid');
-  teamContainer.innerHTML = ''; // Clear previous content
+  teamContainer.innerHTML = '';
   const leagueNameSpan = document.getElementById("league_name");
   leagueNameSpan.textContent = leagueName;
 
   const teams = getLeagueClubIds(countryName, leagueName);
   teams.forEach(team => {
     const wrapper = document.createElement('div');
-    wrapper.className = 'badge-wrapper'; // Reuse league-wrapper class
+    wrapper.className = 'badge-wrapper';
 
-    // Badge element
     const badge = document.createElement('div');
-    badge.className = 'badge'; // Reuse badge class
+    badge.className = 'badge';
     const logo = getClubBadgeURL(team, 120);
 
-    const img = new Image();
+    const img = new Image(); // The only way that worked (there is some problems with header of the request)
     img.onload = () => {
       badge.style.backgroundImage = `url(${logo})`;
     };
@@ -506,6 +533,7 @@ function showTeams(countryName, leagueName) {
     selectedPlayersTable.setData(filteredData);
   });
 }
+
 
 function setupPlayersTable() {
   let table = new Tabulator("#table_div", {
@@ -565,14 +593,14 @@ function setupPlayersTable() {
 
   function rowFormatter(row) {
     if (row.getPosition() % 2 === 0) {
-      row.getElement().style.backgroundColor = "#f0f4f8"; // Even rows have light gray
+      row.getElement().style.backgroundColor = "#f0f4f8";
     } else {
-      row.getElement().style.backgroundColor = "#ffffff"; // Odd rows are white
+      row.getElement().style.backgroundColor = "#ffffff";
     }
 
     // Ensure the selected row retains its custom color
     if (selectedRow && selectedRow.getData().player_id === row.getData().player_id) {
-      row.getElement().style.backgroundColor = 'rgba(42, 157, 143, 0.4)'; // Last clicked row color
+      row.getElement().style.backgroundColor = 'rgba(42, 157, 143, 0.4)';
     }
   }
 
@@ -587,7 +615,7 @@ function setupPlayersTable() {
       rowFormatter(r);
     });
     // Remove all the comparizons when a new selection is done
-    hideAttributeComparizons();
+    hideAttributeDifferences();
     lineRemoveComparedPlayerDataset(playerWageTimeLine)
     lineRemoveComparedPlayerDataset(playerValueTimeLine)
     radarRemoveComparedPlayerDataset(playerRadarChart)
@@ -598,12 +626,11 @@ function setupPlayersTable() {
     selectedRow = row; // Store the clicked row for future reference
     // Restore the row color for all rows before applying the new color to the selected row
     table.getRows().forEach(r => {
-      rowFormatter(r); // This will use the default row colors from rowFormatter
+      rowFormatter(r);
     });
 
-
     displaySelectedPlayer(selectedPlayer);
-    hideAttributeComparizons();
+    hideAttributeDifferences();
   });
 
   table.on("rowMouseOver", (e, row) => {
@@ -621,6 +648,8 @@ function setupPlayersTable() {
   selectedPlayersTable = table;
 }
 
+
+// Mouse over some table record
 function displayInspectedPlayer(inspectedPlayerData) {
   if (inspectedPlayerData.player_id == comparedPlayerId) { // inspecting the same player as last time (no change)
     return;
@@ -628,13 +657,12 @@ function displayInspectedPlayer(inspectedPlayerData) {
   comparedPlayerId = inspectedPlayerData.player_id;
   let referencePlayerData = selectedYearData.find(d => d.player_id === referencePlayerId);
 
+  // Update the differences
   PLAYER_STATS.forEach(stat => {
     const inspectedValue = inspectedPlayerData[stat];
     const referenceValue = referencePlayerData[stat];
-
     const difference = inspectedValue - referenceValue;
 
-    // Update the *_diff span
     const diffElement = document.getElementById(`${stat}_diff`);
     if (comparedPlayerId == referencePlayerId) {
       diffElement.classList.remove('show');
@@ -654,7 +682,6 @@ function displayInspectedPlayer(inspectedPlayerData) {
       diffElement.style.backgroundColor = "lightgrey"; // No difference
       diffElement.style.color = "black";
     }
-
   });
 
   // Get data based on the reference player position
@@ -681,6 +708,8 @@ function displayInspectedPlayer(inspectedPlayerData) {
   }
 }
 
+
+// Action after clicking on a player in table
 function displaySelectedPlayer(selectedPlayer) {
   referencePlayerId = selectedPlayer.player_id;
 
@@ -739,6 +768,7 @@ function displaySelectedPlayer(selectedPlayer) {
   drawHeatmap(selectedPlayer)
 }
 
+
 function getPlayerStats(player, goalie_stats) {
   if (goalie_stats) {
     return {
@@ -753,6 +783,7 @@ function getPlayerStats(player, goalie_stats) {
   }
 }
 
+
 function updatePlayerStats(playerData) {
   PLAYER_STATS.forEach(stat => {
     const element = document.getElementById(stat);
@@ -765,6 +796,7 @@ function updatePlayerStats(playerData) {
     element.style.backgroundColor = color;
   });
 }
+
 
 /* Getters */
 function getLeagueBadgeURL(league) {
@@ -884,6 +916,7 @@ function getFontColor(value) {
   return "white"
 }
 
+
 /* Charts */
 function getPlayerMarketValues(player_id) {
   let value_eur_per_year = [null, null, null, null, null];
@@ -895,6 +928,7 @@ function getPlayerMarketValues(player_id) {
   return value_eur_per_year;
 }
 
+
 function getPlayerWages(player_id) {
   let wage_eur_per_year = [null, null, null, null, null];
   const playerData = allVersionsData.filter(d => d.player_id === player_id);
@@ -904,6 +938,7 @@ function getPlayerWages(player_id) {
   });
   return wage_eur_per_year;
 }
+
 
 function createRadarChart(canvas, labels, dataPoints, playerName) {
   return new Chart(canvas, {
@@ -980,6 +1015,7 @@ function createRadarChart(canvas, labels, dataPoints, playerName) {
   });
 }
 
+
 function radarAddComparedPlayerDataset(radarChart, newData, playerName) {
   radarChart.data.datasets.push({
     data: newData,
@@ -1000,6 +1036,7 @@ function radarAddComparedPlayerDataset(radarChart, newData, playerName) {
     radarChart.update();
 }
 
+
 function radarRemoveComparedPlayerDataset(radarChart, index = 1) {
   if (radarChart.data.datasets.length > index) {
     radarChart.data.datasets.splice(index, 1);
@@ -1009,6 +1046,7 @@ function radarRemoveComparedPlayerDataset(radarChart, index = 1) {
       radarChart.update();
   }
 }
+
 
 function createTimelineChart(canvas, dataPoints, type, playerName) {
   const maxDataValue = Math.max(...dataPoints);
@@ -1089,6 +1127,7 @@ function createTimelineChart(canvas, dataPoints, type, playerName) {
   });
 }
 
+
 function updateYScale(chart) {
   const allDataPoints = chart.data.datasets.flatMap(dataset => dataset.data);
   const maxValue = Math.max(0, ...allDataPoints);
@@ -1100,6 +1139,7 @@ function updateYScale(chart) {
   };
 }
 
+
 function calculateMaxYScale(maxValue) {
   const rawMax = maxValue * 1.05;
   const magnitude = Math.floor(Math.log10(rawMax));
@@ -1107,6 +1147,7 @@ function calculateMaxYScale(maxValue) {
   const finalMax = Math.ceil(rawMax / stepSize) * stepSize;
   return finalMax;
 }
+
 
 function formatTicks(value, stepSize) {
   if (value === 0) return '0';
@@ -1118,6 +1159,7 @@ function formatTicks(value, stepSize) {
   }
   return stepLabel.toString();
 }
+
 
 function lineAddComparedPlayerDataset(lineChart, newData, playerName) {
   lineChart.data.datasets.push({
@@ -1134,6 +1176,7 @@ function lineAddComparedPlayerDataset(lineChart, newData, playerName) {
   updateYScale(lineChart);
   lineChart.update();
 }
+
 
 function lineRemoveComparedPlayerDataset(lineChart, index = 1) {
   lineChart.data.datasets.splice(index, 1);
